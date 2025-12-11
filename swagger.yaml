@@ -4115,3 +4115,4 @@ components:
           format: date
         photo:
           type: string
+
