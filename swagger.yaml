@@ -1,0 +1,4117 @@
+openapi: 3.0.3
+info:
+  title: Audit System API
+  description: |
+    API для системы управления студентами, проживанием, оплатами, мероприятиями и другими функциями.
+    
+    ## Аутентификация
+    
+    ### Административные API
+    Большинство административных API требуют сессионной аутентификации через Flask session.
+    После входа через `/admin` устанавливается сессия с `admin_id`.
+    
+    ### Студенческие API
+    Студенческие API (`/api/student/*`) используют HMAC-аутентификацию:
+    - Заголовок `X-API-Token`: HMAC-SHA256 токен
+    - Заголовок `X-Timestamp`: Unix timestamp запроса
+    - Токен вычисляется как: `HMAC-SHA256(API_SECRET_KEY, timestamp + path + method)`
+    
+    ## Права доступа
+    
+    Система использует систему прав доступа (permissions):
+    - `view` - Просмотр данных
+    - `edit` - Редактирование
+    - `delete` - Удаление
+    - `import` - Импорт данных
+    - `manage_columns` - Управление колонками
+    - `manage_health` - Управление здоровьем
+    - `manage_vacation` - Управление отпусками
+    - `manage_admins` - Управление администраторами
+    - `manage_bed_linen` - Управление постельным бельем
+    - `manage_send_messages` - Отправка сообщений
+    - `view_reports` - Просмотр отчетов
+    - `manage_tg_users` - Управление Telegram пользователями
+    - `scan_qr` - Сканирование QR-кодов
+    - `manage_payments` - Управление оплатами
+    - `manage_rooms` - Управление комнатами
+    - `manage_minors` - Управление несовершеннолетними
+    - `manage_round_assignments` - Управление назначениями обходов
+    - `manage_events` - Управление мероприятиями
+    - `access_college` - Доступ к колледжу
+    - `all` - Все права
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:5003
+    description: Локальный сервер разработки
+  - url: https://api.example.com
+    description: Production сервер
+
+tags:
+  - name: Authentication
+    description: Аутентификация и авторизация
+  - name: Employees
+    description: Управление студентами (employees)
+  - name: Admin
+    description: Управление администраторами и ролями
+  - name: Rooms
+    description: Управление комнатами
+  - name: Payments
+    description: Управление оплатами
+  - name: Events
+    description: Управление мероприятиями
+  - name: Student API
+    description: API для студентов
+  - name: Bed Linen
+    description: Управление постельным бельем
+  - name: Rounds
+    description: Обходы и назначения
+  - name: Maintenance
+    description: Заявки на обслуживание
+  - name: Groups
+    description: Управление группами
+  - name: Backup
+    description: Резервное копирование
+  - name: Import/Export
+    description: Импорт и экспорт данных
+  - name: Utilities
+    description: Вспомогательные функции
+
+paths:
+  # ==================== Authentication ====================
+  /admin:
+    get:
+      tags: [Authentication]
+      summary: Страница входа администратора
+      description: Отображает форму входа для администраторов
+      responses:
+        '200':
+          description: Форма входа
+    post:
+      tags: [Authentication]
+      summary: Вход администратора
+      description: Аутентификация администратора и создание сессии
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  description: Имя пользователя
+                password:
+                  type: string
+                  format: password
+                  description: Пароль
+      responses:
+        '302':
+          description: Успешный вход, редирект на панель администратора
+        '200':
+          description: Ошибка входа, отображается форма с сообщением об ошибке
+
+  /logout:
+    get:
+      tags: [Authentication]
+      summary: Выход из системы
+      description: Завершает сессию администратора
+      responses:
+        '302':
+          description: Редирект на главную страницу
+
+  /api/user:
+    get:
+      tags: [Authentication]
+      summary: Получить информацию о текущем пользователе
+      description: Возвращает информацию о текущем авторизованном администраторе
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  is_admin:
+                    type: boolean
+                  admin_id:
+                    type: integer
+                  admin_username:
+                    type: string
+                  admin_role:
+                    type: string
+                  admin_fio:
+                    type: string
+
+  /api/admin/permissions:
+    get:
+      tags: [Authentication]
+      summary: Получить права доступа текущего администратора
+      description: Возвращает список всех прав доступа и их значения для текущего администратора
+      responses:
+        '200':
+          description: Права доступа
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  permissions:
+                    type: object
+                    additionalProperties:
+                      type: boolean
+                  role:
+                    type: string
+
+  # ==================== Employees ====================
+  /api/columns:
+    get:
+      tags: [Employees]
+      summary: Получить список колонок
+      description: Возвращает список фиксированных и пользовательских колонок для отображения данных студентов
+      responses:
+        '200':
+          description: Список колонок
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fixed:
+                    type: array
+                    items:
+                      type: string
+                    description: Фиксированные колонки (fio, phone, group_name, birth_date)
+                  custom:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        col_type:
+                          type: string
+
+  /api/employees:
+    get:
+      tags: [Employees]
+      summary: Получить список студентов
+      description: |
+        Получить список студентов с возможностью фильтрации.
+        Поддерживает фильтрацию по поисковому запросу, группе и статусу.
+        Автоматически применяет ограничения доступа на основе уровня образования администратора.
+      parameters:
+        - name: q
+          in: query
+          description: Поисковый запрос. Ищет по ФИО, телефону, группе, заметкам, отпускам и т.д.
+          schema:
+            type: string
+        - name: group
+          in: query
+          description: Фильтр по группе. Можно указать несколько групп через запятую.
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Фильтр по статусу
+          schema:
+            type: string
+            enum: [ill, residents, non_residents, no_residence]
+      responses:
+        '200':
+          description: Список студентов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Employee'
+
+  /api/employee/{emp_id}:
+    get:
+      tags: [Employees]
+      summary: Получить информацию о студенте
+      description: Получить подробную информацию о конкретном студенте
+      parameters:
+        - name: emp_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Информация о студенте
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '404':
+          description: Студент не найден
+
+  /api/employee/{emp_id}/changes_history:
+    get:
+      tags: [Employees]
+      summary: Получить историю изменений студента
+      description: Возвращает историю изменений полей студента
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: emp_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: История изменений
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    admin_id:
+                      type: integer
+                    admin_username:
+                      type: string
+                    field_name:
+                      type: string
+                    old_value:
+                      type: string
+                    new_value:
+                      type: string
+                    changed_at:
+                      type: string
+                      format: date-time
+
+  /api/employee/{emp_id}/roommates:
+    get:
+      tags: [Employees]
+      summary: Получить соседей по комнате
+      description: Возвращает список студентов, проживающих в той же комнате
+      parameters:
+        - name: emp_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список соседей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Employee'
+
+  /api/admin/employee:
+    post:
+      tags: [Employees]
+      summary: Создать нового студента
+      description: Создает нового студента в системе
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeInput'
+      responses:
+        '200':
+          description: Студент создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  id:
+                    type: integer
+        '400':
+          description: Ошибка валидации
+
+  /api/admin/employee/{emp_id}:
+    post:
+      tags: [Employees]
+      summary: Обновить данные студента
+      description: Обновляет данные существующего студента
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: emp_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeInput'
+      responses:
+        '200':
+          description: Данные обновлены
+        '400':
+          description: Ошибка валидации
+        '404':
+          description: Студент не найден
+    delete:
+      tags: [Employees]
+      summary: Удалить студента
+      description: Удаляет студента из системы
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: emp_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Студент удален
+        '404':
+          description: Студент не найден
+
+  /api/admin/photo/{emp_id}:
+    post:
+      tags: [Employees]
+      summary: Загрузить фото студента
+      description: Загружает или обновляет фотографию студента
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: emp_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Фото загружено
+        '400':
+          description: Ошибка валидации
+
+  /api/employee/{emp_id}/files:
+    get:
+      tags: [Employees]
+      summary: Получить список файлов студента
+      description: Возвращает список всех файлов, прикрепленных к студенту
+      parameters:
+        - name: emp_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список файлов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    filename:
+                      type: string
+                    uploaded_at:
+                      type: string
+                      format: date-time
+    post:
+      tags: [Employees]
+      summary: Загрузить файл для студента
+      description: Загружает файл и прикрепляет его к студенту
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: emp_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Файл загружен
+        '400':
+          description: Ошибка валидации
+
+  /api/employee/{emp_id}/files/{file_id}:
+    delete:
+      tags: [Employees]
+      summary: Удалить файл студента
+      description: Удаляет файл, прикрепленный к студенту
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: emp_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: file_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Файл удален
+        '404':
+          description: Файл не найден
+
+  /api/employee/{emp_id}/files/{file_id}/download:
+    get:
+      tags: [Employees]
+      summary: Скачать файл студента
+      description: Скачивает файл, прикрепленный к студенту
+      parameters:
+        - name: emp_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: file_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Файл
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Файл не найден
+
+  # ==================== Admin Management ====================
+  /api/admin/admins:
+    get:
+      tags: [Admin]
+      summary: Получить список администраторов
+      description: Возвращает список всех администраторов системы
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список администраторов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Admin'
+        '401':
+          description: Не авторизован
+        '403':
+          description: Нет прав доступа
+    post:
+      tags: [Admin]
+      summary: Создать нового администратора
+      description: Создает нового администратора в системе
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                  minLength: 6
+                role:
+                  type: string
+                  default: vospitatel
+                fio:
+                  type: string
+      responses:
+        '200':
+          description: Администратор создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Ошибка валидации
+        '401':
+          description: Не авторизован
+        '403':
+          description: Нет прав доступа
+
+  /api/admin/admins/{admin_id}:
+    post:
+      tags: [Admin]
+      summary: Обновить администратора
+      description: Обновляет данные администратора
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: admin_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                is_active:
+                  type: boolean
+                password:
+                  type: string
+                  minLength: 6
+                fio:
+                  type: string
+      responses:
+        '200':
+          description: Администратор обновлен
+        '400':
+          description: Ошибка валидации
+        '401':
+          description: Не авторизован
+        '403':
+          description: Нет прав доступа
+    delete:
+      tags: [Admin]
+      summary: Удалить администратора
+      description: Удаляет администратора из системы
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: admin_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Администратор удален
+        '400':
+          description: Нельзя удалить самого себя
+        '401':
+          description: Не авторизован
+        '403':
+          description: Нет прав доступа
+
+  /api/admin/roles:
+    get:
+      tags: [Admin]
+      summary: Получить список ролей
+      description: Возвращает список всех ролей и их прав доступа
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список ролей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    permissions:
+                      type: array
+                      items:
+                        type: string
+                    description:
+                      type: string
+    post:
+      tags: [Admin]
+      summary: Создать новую роль
+      description: Создает новую роль с указанными правами доступа
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, permissions]
+              properties:
+                name:
+                  type: string
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Роль создана
+        '400':
+          description: Ошибка валидации
+
+  /api/admin/roles/{role_name}:
+    post:
+      tags: [Admin]
+      summary: Обновить роль
+      description: Обновляет права доступа роли
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: role_name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Роль обновлена
+    delete:
+      tags: [Admin]
+      summary: Удалить роль
+      description: Удаляет роль из системы
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: role_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Роль удалена
+
+  /api/admin/change_password:
+    post:
+      tags: [Admin]
+      summary: Изменить пароль
+      description: Изменяет пароль текущего администратора
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [old_password, new_password]
+              properties:
+                old_password:
+                  type: string
+                  format: password
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 6
+      responses:
+        '200':
+          description: Пароль изменен
+        '400':
+          description: Неверный старый пароль или ошибка валидации
+
+  # ==================== Rooms ====================
+  /api/admin/rooms:
+    get:
+      tags: [Rooms]
+      summary: Получить список комнат
+      description: Возвращает список всех комнат с информацией о студентах и оплатах
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: month
+          in: query
+          description: Месяц для проверки оплат (формат YYYY-MM)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список комнат
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  rooms:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Room'
+                  month:
+                    type: string
+    post:
+      tags: [Rooms]
+      summary: Создать комнату
+      description: Создает новую комнату в системе
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [building, entrance, room_number]
+              properties:
+                building:
+                  type: string
+                entrance:
+                  type: string
+                room_number:
+                  type: string
+                floor:
+                  type: integer
+                excluded_from_duty:
+                  type: boolean
+                category_id:
+                  type: integer
+      responses:
+        '200':
+          description: Комната создана
+        '400':
+          description: Ошибка валидации
+
+  /api/admin/rooms/{room_id}:
+    post:
+      tags: [Rooms]
+      summary: Обновить комнату
+      description: Обновляет данные комнаты
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                building:
+                  type: string
+                entrance:
+                  type: string
+                room_number:
+                  type: string
+                floor:
+                  type: integer
+                excluded_from_duty:
+                  type: boolean
+                category_id:
+                  type: integer
+      responses:
+        '200':
+          description: Комната обновлена
+        '400':
+          description: Ошибка валидации
+        '404':
+          description: Комната не найдена
+    delete:
+      tags: [Rooms]
+      summary: Удалить комнату
+      description: Удаляет комнату из системы
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Комната удалена
+        '404':
+          description: Комната не найдена
+
+  /api/rooms/list:
+    get:
+      tags: [Rooms]
+      summary: Получить упрощенный список комнат
+      description: Возвращает упрощенный список всех комнат
+      responses:
+        '200':
+          description: Список комнат
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    building:
+                      type: string
+                    entrance:
+                      type: string
+                    room_number:
+                      type: string
+
+  /api/admin/room_categories:
+    get:
+      tags: [Rooms]
+      summary: Получить список категорий комнат
+      description: Возвращает список всех категорий комнат
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список категорий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    max_occupants:
+                      type: integer
+    post:
+      tags: [Rooms]
+      summary: Создать категорию комнат
+      description: Создает новую категорию комнат
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, max_occupants]
+              properties:
+                name:
+                  type: string
+                max_occupants:
+                  type: integer
+      responses:
+        '200':
+          description: Категория создана
+
+  /api/admin/room_categories/{category_id}:
+    post:
+      tags: [Rooms]
+      summary: Обновить категорию комнат
+      description: Обновляет данные категории комнат
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                max_occupants:
+                  type: integer
+      responses:
+        '200':
+          description: Категория обновлена
+    delete:
+      tags: [Rooms]
+      summary: Удалить категорию комнат
+      description: Удаляет категорию комнат
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Категория удалена
+
+  # ==================== Payments ====================
+  /api/employee/{emp_id}/payment_from_scholarship:
+    post:
+      tags: [Payments]
+      summary: Установить флаг оплаты из стипендии
+      description: |
+        Устанавливает флаг оплаты из стипендии для студента.
+        Если флаг установлен, автоматически создается принятый платеж за текущий месяц.
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: emp_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payment_from_scholarship:
+                  type: boolean
+      responses:
+        '200':
+          description: Настройка сохранена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          description: Студент не найден
+
+  /api/payment/send_reminders_to_all:
+    post:
+      tags: [Payments]
+      summary: Отправить напоминания об оплате всем
+      description: Отправляет напоминания об оплате всем студентам без оплаты за текущий месяц
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Напоминания отправлены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  sent:
+                    type: integer
+                  failed:
+                    type: integer
+                  message:
+                    type: string
+
+  /api/payment/calculate_period:
+    post:
+      tags: [Payments]
+      summary: Рассчитать период оплаты
+      description: Рассчитывает период оплаты на основе дат
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                start_date:
+                  type: string
+                  format: date
+                end_date:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Период рассчитан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  days:
+                    type: integer
+                  amount:
+                    type: number
+
+  /api/payment/assign_to_student:
+    post:
+      tags: [Payments]
+      summary: Назначить оплату студенту
+      description: Создает назначенную оплату для студента
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [employee_id, amount, payment_month]
+              properties:
+                employee_id:
+                  type: integer
+                amount:
+                  type: number
+                payment_month:
+                  type: string
+                  format: date
+                comment:
+                  type: string
+      responses:
+        '200':
+          description: Оплата назначена
+        '400':
+          description: Ошибка валидации
+
+  /api/employees/search:
+    get:
+      tags: [Payments]
+      summary: Поиск студентов для оплаты
+      description: Поиск студентов по ФИО или телефону для назначения оплаты
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список найденных студентов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    fio:
+                      type: string
+                    phone:
+                      type: string
+
+  /api/payment/generate_qr:
+    post:
+      tags: [Payments]
+      summary: Сгенерировать QR-код для оплаты
+      description: Генерирует QR-код для оплаты с указанными параметрами
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, student_fio]
+              properties:
+                amount:
+                  type: number
+                student_fio:
+                  type: string
+                room_info:
+                  type: string
+                comment:
+                  type: string
+                start_date:
+                  type: string
+                  format: date
+                end_date:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: QR-код сгенерирован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  qr_code:
+                    type: string
+                    format: base64
+                  qr_string:
+                    type: string
+
+  /api/payment/upload_receipt:
+    post:
+      tags: [Payments]
+      summary: Загрузить чек об оплате
+      description: Загружает чек об оплате для платежа
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [payment_id, receipt]
+              properties:
+                payment_id:
+                  type: integer
+                receipt:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Чек загружен
+        '400':
+          description: Ошибка валидации
+
+  /api/payment/list:
+    get:
+      tags: [Payments]
+      summary: Получить список платежей
+      description: Возвращает список платежей с фильтрацией
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: month
+          in: query
+          description: Месяц для фильтрации (формат YYYY-MM)
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Статус платежа
+          schema:
+            type: string
+            enum: [assigned, pending, accepted, rejected]
+        - name: employee_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список платежей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+
+  /api/payment/approve:
+    post:
+      tags: [Payments]
+      summary: Одобрить платеж
+      description: Одобряет платеж и меняет его статус на 'accepted'
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payment_id]
+              properties:
+                payment_id:
+                  type: integer
+                comment:
+                  type: string
+      responses:
+        '200':
+          description: Платеж одобрен
+        '400':
+          description: Ошибка валидации
+
+  /api/payment/reject:
+    post:
+      tags: [Payments]
+      summary: Отклонить платеж
+      description: Отклоняет платеж и меняет его статус на 'rejected'
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payment_id]
+              properties:
+                payment_id:
+                  type: integer
+                comment:
+                  type: string
+      responses:
+        '200':
+          description: Платеж отклонен
+        '400':
+          description: Ошибка валидации
+
+  /api/payment/receipt/{payment_id}:
+    get:
+      tags: [Payments]
+      summary: Получить чек об оплате
+      description: Возвращает файл чека об оплате
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Файл чека
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Чек не найден
+
+  # ==================== Events ====================
+  /api/events:
+    get:
+      tags: [Events]
+      summary: Получить список мероприятий
+      description: Возвращает список всех мероприятий с возможностью фильтрации
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Список мероприятий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+    post:
+      tags: [Events]
+      summary: Создать мероприятие
+      description: Создает новое мероприятие
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [description, event_date, event_time]
+              properties:
+                description:
+                  type: string
+                event_date:
+                  type: string
+                  format: date
+                event_time:
+                  type: string
+                  format: time
+                location:
+                  type: string
+                organizers:
+                  type: string
+      responses:
+        '200':
+          description: Мероприятие создано
+        '400':
+          description: Ошибка валидации
+
+  /api/events/{event_id}:
+    delete:
+      tags: [Events]
+      summary: Удалить мероприятие
+      description: Удаляет мероприятие из системы
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Мероприятие удалено
+        '404':
+          description: Мероприятие не найдено
+
+  /api/events/{event_id}/attendance:
+    get:
+      tags: [Events]
+      summary: Получить посещаемость мероприятия
+      description: Возвращает список студентов, посетивших мероприятие
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список посещений
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    employee_id:
+                      type: integer
+                    fio:
+                      type: string
+                    scanned_at:
+                      type: string
+                      format: date-time
+
+  /api/events/{event_id}/scan_qr:
+    post:
+      tags: [Events]
+      summary: Сканировать QR-код для мероприятия
+      description: Регистрирует посещение мероприятия по QR-коду студента
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [qr_code]
+              properties:
+                qr_code:
+                  type: string
+      responses:
+        '200':
+          description: Посещение зарегистрировано
+        '400':
+          description: Ошибка валидации
+
+  /api/events/organizers:
+    get:
+      tags: [Events]
+      summary: Получить список организаторов
+      description: Возвращает список всех организаторов мероприятий
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список организаторов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  organizers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        tg_username:
+                          type: string
+                        fio:
+                          type: string
+    post:
+      tags: [Events]
+      summary: Добавить организатора
+      description: Добавляет нового организатора мероприятий
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tg_username]
+              properties:
+                tg_username:
+                  type: string
+                fio:
+                  type: string
+      responses:
+        '200':
+          description: Организатор добавлен
+        '400':
+          description: Ошибка валидации
+
+  /api/events/organizers/{org_id}:
+    delete:
+      tags: [Events]
+      summary: Удалить организатора
+      description: Удаляет организатора из системы
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Организатор удален
+
+  /api/events/locations:
+    get:
+      tags: [Events]
+      summary: Получить список локаций
+      description: Возвращает список всех локаций для мероприятий
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список локаций
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+    post:
+      tags: [Events]
+      summary: Создать локацию
+      description: Создает новую локацию для мероприятий
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Локация создана
+
+  /api/events/locations/{location_id}:
+    put:
+      tags: [Events]
+      summary: Обновить локацию
+      description: Обновляет данные локации
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: location_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Локация обновлена
+    delete:
+      tags: [Events]
+      summary: Удалить локацию
+      description: Удаляет локацию из системы
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: location_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Локация удалена
+
+  # ==================== Bed Linen ====================
+  /api/bed_linen/add_date_for_all:
+    post:
+      tags: [Bed Linen]
+      summary: Создать период выдачи белья
+      description: Создает период выдачи белья (дата начала и дата окончания) для всех студентов
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [start_date, end_date]
+              properties:
+                start_date:
+                  type: string
+                  format: date
+                end_date:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Период создан
+        '400':
+          description: Ошибка валидации
+
+  /api/bed_linen/list_dates:
+    get:
+      tags: [Bed Linen]
+      summary: Получить список периодов выдачи белья
+      description: Возвращает список всех созданных периодов выдачи белья
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список периодов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  dates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        start_date:
+                          type: string
+                          format: date
+                        end_date:
+                          type: string
+                          format: date
+                        is_active:
+                          type: boolean
+                        status:
+                          type: string
+
+  /api/bed_linen/delete_date/{date_id}:
+    delete:
+      tags: [Bed Linen]
+      summary: Удалить период выдачи белья
+      description: Удаляет период выдачи белья
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: date_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Период удален
+
+  /bed_linen/token:
+    get:
+      tags: [Bed Linen]
+      summary: Получить токен для QR-кода
+      description: Генерирует или возвращает существующий токен для QR-кода выдачи белья
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Токен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+
+  /api/bed_linen/send_reminders:
+    post:
+      tags: [Bed Linen]
+      summary: Отправить напоминания о белье
+      description: Отправляет сообщения студентам, которые не поменяли белье за выбранный период
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [period_id]
+              properties:
+                period_id:
+                  type: integer
+      responses:
+        '200':
+          description: Напоминания отправлены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  sent_count:
+                    type: integer
+                  failed_count:
+                    type: integer
+
+  /api/bed_linen/send_custom_messages:
+    post:
+      tags: [Bed Linen]
+      summary: Отправить кастомные сообщения
+      description: Отправляет кастомные сообщения студентам
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                student_ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Сообщения отправлены
+
+  /api/message_templates:
+    get:
+      tags: [Bed Linen]
+      summary: Получить шаблоны сообщений
+      description: Возвращает список шаблонов сообщений
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список шаблонов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+    post:
+      tags: [Bed Linen]
+      summary: Создать шаблон сообщения
+      description: Создает новый шаблон сообщения
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, content]
+              properties:
+                name:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Шаблон создан
+
+  /api/message_templates/{template_id}:
+    put:
+      tags: [Bed Linen]
+      summary: Обновить шаблон сообщения
+      description: Обновляет шаблон сообщения
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Шаблон обновлен
+    delete:
+      tags: [Bed Linen]
+      summary: Удалить шаблон сообщения
+      description: Удаляет шаблон сообщения
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Шаблон удален
+
+  # ==================== Rounds ====================
+  /api/minors/list:
+    get:
+      tags: [Rounds]
+      summary: Получить список несовершеннолетних
+      description: Возвращает список несовершеннолетних студентов по подъездам с результатами обхода
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: building
+          in: query
+          schema:
+            type: string
+        - name: entrance
+          in: query
+          schema:
+            type: string
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Список несовершеннолетних
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  minors:
+                    type: object
+                  buildings:
+                    type: array
+                    items:
+                      type: string
+
+  /api/minors/can_do_rounds:
+    get:
+      tags: [Rounds]
+      summary: Получить список студентов, которые могут делать обходы
+      description: Возвращает список студентов с правом на обход
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список студентов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  students:
+                    type: array
+                    items:
+                      type: object
+
+  /api/minors/set_minor:
+    post:
+      tags: [Rounds]
+      summary: Установить статус обхода для несовершеннолетнего
+      description: Устанавливает/снимает ручную отметку обхода для студента
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id, is_minor]
+              properties:
+                student_id:
+                  type: integer
+                is_minor:
+                  type: boolean
+                date:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Статус обновлен
+
+  /api/minors/send_location_question:
+    post:
+      tags: [Rounds]
+      summary: Отправить вопрос о местоположении
+      description: Отправляет сообщение несовершеннолетним, которых не было во время обхода
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Сообщения отправлены
+
+  /api/minors/set_can_do_rounds:
+    post:
+      tags: [Rounds]
+      summary: Установить право на обход
+      description: Устанавливает/снимает право на обход для студента
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id, can_do_rounds]
+              properties:
+                student_id:
+                  type: integer
+                can_do_rounds:
+                  type: boolean
+      responses:
+        '200':
+          description: Право обновлено
+
+  /api/rounds/start:
+    post:
+      tags: [Rounds]
+      summary: Начать обход
+      description: Начинает обход для Telegram бота
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tg_user_id]
+              properties:
+                tg_user_id:
+                  type: integer
+      responses:
+        '200':
+          description: Обход начат
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  building:
+                    type: string
+                  entrance:
+                    type: string
+                  rooms:
+                    type: object
+
+  /api/rounds/record:
+    post:
+      tags: [Rounds]
+      summary: Записать результат обхода
+      description: Записывает результат обхода для Telegram бота
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tg_user_id, student_id, status]
+              properties:
+                tg_user_id:
+                  type: integer
+                student_id:
+                  type: integer
+                status:
+                  type: string
+                  enum: [present, absent]
+      responses:
+        '200':
+          description: Результат записан
+
+  /api/rounds/history:
+    get:
+      tags: [Rounds]
+      summary: Получить историю обходов
+      description: Возвращает историю обходов за указанную дату
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: История обходов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  rounds:
+                    type: array
+                    items:
+                      type: object
+
+  /api/round_assignments/chiefs:
+    get:
+      tags: [Rounds]
+      summary: Получить список старших студентов
+      description: Возвращает список студентов с флагом is_round_chief = 1
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список старших студентов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  chiefs:
+                    type: array
+                    items:
+                      type: object
+
+  /api/round_assignments/set_chief:
+    post:
+      tags: [Rounds]
+      summary: Установить статус старшего студента
+      description: Устанавливает/снимает статус старшего студента (is_round_chief)
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id, is_chief]
+              properties:
+                student_id:
+                  type: integer
+                is_chief:
+                  type: boolean
+      responses:
+        '200':
+          description: Статус обновлен
+
+  /api/round_assignments/set_elder:
+    post:
+      tags: [Rounds]
+      summary: Установить старосту подъезда
+      description: Устанавливает/снимает статус старосты подъезда
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [employee_id, is_elder]
+              properties:
+                employee_id:
+                  type: integer
+                is_elder:
+                  type: boolean
+                building:
+                  type: string
+                entrance:
+                  type: string
+      responses:
+        '200':
+          description: Статус обновлен
+
+  /api/round_assignments/elders:
+    get:
+      tags: [Rounds]
+      summary: Получить список старост подъездов
+      description: Возвращает список старост подъездов с их назначениями
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список старост
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  elders:
+                    type: array
+                    items:
+                      type: object
+
+  /api/round_assignments/list:
+    get:
+      tags: [Rounds]
+      summary: Получить список назначений
+      description: Возвращает список назначений студентов на подъезды
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: building
+          in: query
+          schema:
+            type: string
+        - name: entrance
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список назначений
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  assignments:
+                    type: array
+                    items:
+                      type: object
+
+  /api/round_assignments/assign:
+    post:
+      tags: [Rounds]
+      summary: Назначить студента на обход
+      description: Назначает студента на обход подъезда
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id, building, entrance]
+              properties:
+                student_id:
+                  type: integer
+                building:
+                  type: string
+                entrance:
+                  type: string
+      responses:
+        '200':
+          description: Студент назначен
+
+  /api/round_assignments/remove:
+    post:
+      tags: [Rounds]
+      summary: Удалить назначение
+      description: Удаляет назначение студента на обход подъезда
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignment_id]
+              properties:
+                assignment_id:
+                  type: integer
+      responses:
+        '200':
+          description: Назначение удалено
+
+  /api/round_assignments/students:
+    get:
+      tags: [Rounds]
+      summary: Получить студентов для назначения
+      description: Возвращает список студентов с can_do_rounds = 1
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список студентов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  students:
+                    type: array
+                    items:
+                      type: object
+
+  /api/round_assignments/educators_list:
+    get:
+      tags: [Rounds]
+      summary: Получить список воспитателей
+      description: Возвращает список воспитателей (администраторов с ролью vospitatel)
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список воспитателей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/round_assignments/all_students:
+    get:
+      tags: [Rounds]
+      summary: Получить всех студентов
+      description: Возвращает список всех студентов для назначений
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список студентов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/round_assignments/students_for_rounds:
+    get:
+      tags: [Rounds]
+      summary: Получить студентов для обходов
+      description: Возвращает список студентов, которые могут делать обходы
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список студентов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/round_assignments/students_for_rounds_chief:
+    get:
+      tags: [Rounds]
+      summary: Получить студентов для обходов (старший)
+      description: Возвращает список студентов для старшего студента
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список студентов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/round_assignments/assign_by_chief:
+    post:
+      tags: [Rounds]
+      summary: Назначить студента (старший)
+      description: Назначает студента на обход от имени старшего студента
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id, building, entrance]
+              properties:
+                student_id:
+                  type: integer
+                building:
+                  type: string
+                entrance:
+                  type: string
+      responses:
+        '200':
+          description: Студент назначен
+
+  /api/round_assignments/restrictions:
+    get:
+      tags: [Rounds]
+      summary: Получить ограничения
+      description: Возвращает список ограничений для назначений
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список ограничений
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+    post:
+      tags: [Rounds]
+      summary: Создать ограничение
+      description: Создает новое ограничение для назначений
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                student_id:
+                  type: integer
+                building:
+                  type: string
+                entrance:
+                  type: string
+      responses:
+        '200':
+          description: Ограничение создано
+
+  /api/round_assignments/restrictions/{restriction_id}:
+    delete:
+      tags: [Rounds]
+      summary: Удалить ограничение
+      description: Удаляет ограничение для назначений
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: restriction_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ограничение удалено
+
+  /api/round_assignments/set_max_entrances:
+    post:
+      tags: [Rounds]
+      summary: Установить максимальное количество подъездов
+      description: Устанавливает максимальное количество подъездов для студента
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id, max_entrances]
+              properties:
+                student_id:
+                  type: integer
+                max_entrances:
+                  type: integer
+      responses:
+        '200':
+          description: Максимум установлен
+
+  /api/round_assignments/generate_schedule:
+    post:
+      tags: [Rounds]
+      summary: Сгенерировать график дежурств
+      description: Генерирует график дежурств для подъезда
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [building, entrance]
+              properties:
+                building:
+                  type: string
+                entrance:
+                  type: string
+      responses:
+        '200':
+          description: График сгенерирован
+
+  # ==================== Maintenance ====================
+  /api/maintenance_requests:
+    get:
+      tags: [Maintenance]
+      summary: Получить список заявок на обслуживание
+      description: Возвращает список заявок на обслуживание с фильтрацией
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [new, in_progress, closed]
+        - name: request_number
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список заявок
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  requests:
+                    type: array
+                    items:
+                      type: object
+    post:
+      tags: [Maintenance]
+      summary: Создать заявку на обслуживание
+      description: Создает новую заявку на обслуживание
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tg_user_id, message]
+              properties:
+                tg_user_id:
+                  type: integer
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Заявка создана
+
+  /api/maintenance_requests/{request_id}/assign:
+    post:
+      tags: [Maintenance]
+      summary: Назначить заявку
+      description: Назначает заявку на обслуживание администратору
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                request_number:
+                  type: string
+      responses:
+        '200':
+          description: Заявка назначена
+
+  /api/maintenance_requests/{request_id}/comment:
+    post:
+      tags: [Maintenance]
+      summary: Добавить комментарий к заявке
+      description: Добавляет комментарий к заявке на обслуживание
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [comment]
+              properties:
+                comment:
+                  type: string
+      responses:
+        '200':
+          description: Комментарий добавлен
+
+  /api/maintenance_requests/{request_id}/close:
+    post:
+      tags: [Maintenance]
+      summary: Закрыть заявку
+      description: Закрывает заявку на обслуживание
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Заявка закрыта
+
+  /api/maintenance_requests/{request_id}/complete:
+    post:
+      tags: [Maintenance]
+      summary: Завершить заявку
+      description: Завершает заявку на обслуживание (от студента)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tg_user_id]
+              properties:
+                tg_user_id:
+                  type: integer
+      responses:
+        '200':
+          description: Заявка завершена
+
+  /api/maintenance_requests/my:
+    get:
+      tags: [Maintenance]
+      summary: Получить мои заявки
+      description: Возвращает список заявок на обслуживание текущего студента
+      parameters:
+        - name: tg_user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список заявок
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  requests:
+                    type: array
+                    items:
+                      type: object
+
+  # ==================== Columns ====================
+  /api/admin/add_column:
+    post:
+      tags: [Employees]
+      summary: Добавить пользовательскую колонку
+      description: Создает новую пользовательскую колонку для студентов
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, type]
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [text, number, date]
+      responses:
+        '200':
+          description: Колонка добавлена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  name:
+                    type: string
+
+  /api/admin/delete_column:
+    post:
+      tags: [Employees]
+      summary: Удалить пользовательскую колонку
+      description: Удаляет пользовательскую колонку
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Колонка удалена
+
+  # ==================== Telegram Users ====================
+  /api/admin/tg_users:
+    get:
+      tags: [Admin]
+      summary: Получить список Telegram пользователей
+      description: Возвращает список студентов с информацией о их Telegram аккаунтах
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список пользователей
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  users:
+                    type: array
+                    items:
+                      type: object
+
+  /api/admin/tg_users/export:
+    get:
+      tags: [Admin]
+      summary: Экспортировать Telegram пользователей
+      description: Экспортирует список Telegram пользователей в Excel
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Excel файл
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  /api/admin/tg_users/import:
+    post:
+      tags: [Admin]
+      summary: Импортировать Telegram пользователей
+      description: Импортирует Telegram username из Excel файла
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Импорт выполнен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  inserted:
+                    type: integer
+                  skipped:
+                    type: integer
+                  to_replace:
+                    type: array
+                    items:
+                      type: object
+
+  /api/admin/tg_users/confirm_replace:
+    post:
+      tags: [Admin]
+      summary: Подтвердить замену username
+      description: Подтверждает замену Telegram username для студентов
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [replacements]
+              properties:
+                replacements:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Замены выполнены
+
+  # ==================== Additional Admin API ====================
+  /api/admin/settings/telegram_ids:
+    get:
+      tags: [Admin]
+      summary: Получить Telegram ID администраторов
+      description: Возвращает список Telegram ID администраторов для пересылки ответов
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  telegram_ids:
+                    type: array
+                    items:
+                      type: integer
+    post:
+      tags: [Admin]
+      summary: Сохранить Telegram ID администраторов
+      description: Сохраняет список Telegram ID администраторов
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [telegram_ids]
+              properties:
+                telegram_ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: ID сохранены
+
+  /api/admin/settings/user_bot:
+    get:
+      tags: [Admin]
+      summary: Получить настройки User Bot
+      description: Возвращает настройки Telegram User Bot
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Настройки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  settings:
+                    type: object
+                  is_configured:
+                    type: boolean
+                  has_session:
+                    type: boolean
+    post:
+      tags: [Admin]
+      summary: Сохранить настройки User Bot
+      description: Сохраняет настройки Telegram User Bot
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [api_id, api_hash, phone_number]
+              properties:
+                api_id:
+                  type: string
+                api_hash:
+                  type: string
+                phone_number:
+                  type: string
+      responses:
+        '200':
+          description: Настройки сохранены
+
+  /api/admin/settings/user_bot/test:
+    post:
+      tags: [Admin]
+      summary: Проверить подключение User Bot
+      description: Проверяет подключение к Telegram User Bot
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Подключение успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  user_info:
+                    type: object
+
+  /api/admin/settings/user_bot/disconnect:
+    post:
+      tags: [Admin]
+      summary: Отключить User Bot
+      description: Отключает Telegram User Bot
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: User Bot отключен
+
+  /api/admin/duty_schedules:
+    get:
+      tags: [Admin]
+      summary: Получить графики дежурств
+      description: Возвращает графики дежурств
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Графики дежурств
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  # ==================== Additional Room Routes ====================
+  /api/admin/rooms/import_excel:
+    post:
+      tags: [Rooms]
+      summary: Импортировать комнаты из Excel
+      description: Импортирует комнаты из Excel файла
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Комнаты импортированы
+
+  /api/admin/rooms/import_excel_with_fio:
+    post:
+      tags: [Rooms]
+      summary: Импортировать комнаты с ФИО из Excel
+      description: Импортирует комнаты с привязкой к студентам из Excel файла
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Комнаты импортированы
+
+  /api/admin/rooms/delete-all:
+    post:
+      tags: [Rooms]
+      summary: Удалить все комнаты
+      description: Удаляет все комнаты из системы
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Все комнаты удалены
+
+  # ==================== Additional Event Routes ====================
+  /api/events/locations/all:
+    get:
+      tags: [Events]
+      summary: Получить все локации
+      description: Возвращает все локации для мероприятий
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список локаций
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/events/scan_qr:
+    post:
+      tags: [Events]
+      summary: Сканировать QR-код (универсальный)
+      description: Универсальный эндпоинт для сканирования QR-кода на мероприятии
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [qr_code, event_id]
+              properties:
+                qr_code:
+                  type: string
+                event_id:
+                  type: integer
+      responses:
+        '200':
+          description: Посещение зарегистрировано
+
+  /api/events/tg_users:
+    get:
+      tags: [Events]
+      summary: Получить Telegram пользователей
+      description: Возвращает список Telegram пользователей для мероприятий
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список пользователей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/events/vospitatels:
+    get:
+      tags: [Events]
+      summary: Получить воспитателей
+      description: Возвращает список воспитателей для мероприятий
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список воспитателей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/events/attendance/rating:
+    get:
+      tags: [Events]
+      summary: Получить рейтинг посещаемости
+      description: Возвращает рейтинг посещаемости мероприятий
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Рейтинг посещаемости
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/students/generate_qr/{employee_id}:
+    post:
+      tags: [Events]
+      summary: Сгенерировать QR-код для студента
+      description: Генерирует QR-код для студента для мероприятий
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: QR-код сгенерирован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  qr_code:
+                    type: string
+
+  # ==================== Additional Import Routes ====================
+  /api/import_excel:
+    post:
+      tags: [Import/Export]
+      summary: Импортировать данные из Excel (публичный)
+      description: Публичный эндпоинт для импорта данных из Excel
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Импорт выполнен
+
+  # ==================== Student API ====================
+  /api/student/auth:
+    post:
+      tags: [Student API]
+      summary: Аутентификация студента
+      description: |
+        Аутентифицирует студента по Telegram username и паролю.
+        Отправляет код двухфакторной аутентификации в Telegram.
+      security:
+        - hmacAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  description: Telegram username (без @)
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Код 2FA отправлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  '2fa_sent':
+                    type: boolean
+                  tg_user_id:
+                    type: integer
+                  student:
+                    $ref: '#/components/schemas/Student'
+        '401':
+          description: Неверный пароль
+
+  /api/student/verify-2fa:
+    post:
+      tags: [Student API]
+      summary: Проверка кода 2FA
+      description: Проверяет код двухфакторной аутентификации и завершает вход
+      security:
+        - hmacAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id, code]
+              properties:
+                student_id:
+                  type: integer
+                code:
+                  type: string
+      responses:
+        '200':
+          description: Код подтвержден
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  student:
+                    $ref: '#/components/schemas/Student'
+        '401':
+          description: Неверный или истекший код
+
+  /api/student/profile:
+    get:
+      tags: [Student API]
+      summary: Получить профиль студента
+      description: Возвращает профиль студента
+      security:
+        - hmacAuth: []
+      parameters:
+        - name: student_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Профиль студента
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  student:
+                    $ref: '#/components/schemas/Student'
+        '404':
+          description: Студент не найден
+
+  /api/student/payments:
+    get:
+      tags: [Student API]
+      summary: Получить платежи студента
+      description: Возвращает список всех платежей студента
+      security:
+        - hmacAuth: []
+      parameters:
+        - name: student_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список платежей
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  payments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+
+  /api/student/payment/submit:
+    post:
+      tags: [Student API]
+      summary: Отправить платеж
+      description: Создает новый платеж с чеком от студента
+      security:
+        - hmacAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id, amount, payment_date, payment_month]
+              properties:
+                student_id:
+                  type: integer
+                amount:
+                  type: number
+                payment_date:
+                  type: string
+                  format: date-time
+                payment_month:
+                  type: string
+                receipt_file:
+                  type: string
+                  format: base64
+      responses:
+        '200':
+          description: Платеж отправлен
+        '400':
+          description: Ошибка валидации
+
+  /api/student/rounds:
+    get:
+      tags: [Student API]
+      summary: Получить обходы студента
+      description: Возвращает список обходов, в которых участвует студент
+      security:
+        - hmacAuth: []
+      parameters:
+        - name: student_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список обходов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  rounds:
+                    type: array
+                    items:
+                      type: object
+
+  /api/student/maintenance:
+    get:
+      tags: [Student API]
+      summary: Получить заявки на обслуживание
+      description: Возвращает список заявок на обслуживание студента
+      security:
+        - hmacAuth: []
+      parameters:
+        - name: student_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список заявок
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  requests:
+                    type: array
+                    items:
+                      type: object
+
+  /api/student/maintenance/submit:
+    post:
+      tags: [Student API]
+      summary: Создать заявку на обслуживание
+      description: Создает новую заявку на обслуживание от студента
+      security:
+        - hmacAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id, description]
+              properties:
+                student_id:
+                  type: integer
+                description:
+                  type: string
+                room:
+                  type: string
+      responses:
+        '200':
+          description: Заявка создана
+        '400':
+          description: Ошибка валидации
+
+  /api/student/events:
+    get:
+      tags: [Student API]
+      summary: Получить мероприятия студента
+      description: Возвращает список мероприятий, в которых участвовал студент
+      security:
+        - hmacAuth: []
+      parameters:
+        - name: student_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список мероприятий
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  events:
+                    type: array
+                    items:
+                      type: object
+
+  /api/student/roommates:
+    get:
+      tags: [Student API]
+      summary: Получить соседей по комнате
+      description: Возвращает список соседей по комнате
+      security:
+        - hmacAuth: []
+      parameters:
+        - name: student_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список соседей
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  roommates:
+                    type: array
+                    items:
+                      type: object
+
+  /api/student/payment-qr:
+    get:
+      tags: [Student API]
+      summary: Получить QR-код для оплаты
+      description: Генерирует QR-код для оплаты для студента
+      security:
+        - hmacAuth: []
+      parameters:
+        - name: student_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: amount
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: QR-код
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  qr_code:
+                    type: string
+                    format: base64
+
+  /api/student/payment-info:
+    get:
+      tags: [Student API]
+      summary: Получить информацию об оплате
+      description: Возвращает информацию об оплате для студента
+      security:
+        - hmacAuth: []
+      parameters:
+        - name: student_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Информация об оплате
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ==================== Groups ====================
+  /api/groups:
+    get:
+      tags: [Groups]
+      summary: Получить список групп
+      description: Возвращает список всех групп
+      responses:
+        '200':
+          description: Список групп
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+
+  /api/admin/groups:
+    get:
+      tags: [Groups]
+      summary: Получить список групп (админ)
+      description: Возвращает список всех групп с дополнительной информацией
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список групп
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+    post:
+      tags: [Groups]
+      summary: Создать группу
+      description: Создает новую группу
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Группа создана
+
+  /api/admin/groups/{group_id}:
+    put:
+      tags: [Groups]
+      summary: Обновить группу
+      description: Обновляет данные группы
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Группа обновлена
+    delete:
+      tags: [Groups]
+      summary: Удалить группу
+      description: Удаляет группу из системы
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Группа удалена
+
+  # ==================== Backup ====================
+  /api/backup/create:
+    post:
+      tags: [Backup]
+      summary: Создать резервную копию
+      description: Создает резервную копию базы данных
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Резервная копия создана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  filename:
+                    type: string
+
+  /api/backup/list:
+    get:
+      tags: [Backup]
+      summary: Получить список резервных копий
+      description: Возвращает список всех резервных копий
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Список резервных копий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    filename:
+                      type: string
+                    size:
+                      type: integer
+                    created_at:
+                      type: string
+                      format: date-time
+
+  /api/backup/restore:
+    post:
+      tags: [Backup]
+      summary: Восстановить из резервной копии
+      description: Восстанавливает базу данных из резервной копии
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename]
+              properties:
+                filename:
+                  type: string
+      responses:
+        '200':
+          description: База данных восстановлена
+        '400':
+          description: Ошибка валидации
+
+  /api/backup/download/{filename}:
+    get:
+      tags: [Backup]
+      summary: Скачать резервную копию
+      description: Скачивает файл резервной копии
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Файл резервной копии
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /api/backup/cleanup:
+    post:
+      tags: [Backup]
+      summary: Очистить старые резервные копии
+      description: Удаляет резервные копии старше указанного количества дней
+      security:
+        - sessionAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                days:
+                  type: integer
+                  default: 30
+      responses:
+        '200':
+          description: Очистка выполнена
+
+  /api/backup/stats:
+    get:
+      tags: [Backup]
+      summary: Получить статистику резервных копий
+      description: Возвращает статистику по резервным копиям
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Статистика
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  total_size:
+                    type: integer
+                  oldest:
+                    type: string
+                    format: date-time
+                  newest:
+                    type: string
+                    format: date-time
+
+  # ==================== Import/Export ====================
+  /api/admin/import_excel/check:
+    post:
+      tags: [Import/Export]
+      summary: Проверить Excel файл перед импортом
+      description: Проверяет структуру Excel файла перед импортом
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Результат проверки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                  preview:
+                    type: array
+                    items:
+                      type: object
+
+  /api/admin/import_excel:
+    post:
+      tags: [Import/Export]
+      summary: Импортировать данные из Excel
+      description: Импортирует студентов из Excel файла
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Импорт выполнен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  imported:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: string
+
+  /api/admin/export/buildings_entrances:
+    get:
+      tags: [Import/Export]
+      summary: Экспортировать корпуса и подъезды
+      description: Экспортирует список корпусов и подъездов в Excel
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Excel файл
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  /api/admin/export/groups:
+    get:
+      tags: [Import/Export]
+      summary: Экспортировать группы
+      description: Экспортирует список групп в Excel
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Excel файл
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  /api/admin/export/columns:
+    get:
+      tags: [Import/Export]
+      summary: Экспортировать колонки
+      description: Экспортирует список пользовательских колонок в Excel
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Excel файл
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  /api/admin/export/export:
+    post:
+      tags: [Import/Export]
+      summary: Экспортировать данные
+      description: Экспортирует данные студентов в Excel с указанными колонками
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                columns:
+                  type: array
+                  items:
+                    type: string
+                filters:
+                  type: object
+      responses:
+        '200':
+          description: Excel файл
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  # ==================== Utilities ====================
+  /api/get_entrance:
+    get:
+      tags: [Utilities]
+      summary: Получить подъезд по номеру комнаты
+      description: Определяет подъезд по номеру корпуса и комнаты
+      parameters:
+        - name: building
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: room_number
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Подъезд
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entrance:
+                    type: string
+
+  /api/employee/{emp_id}/reports:
+    get:
+      tags: [Utilities]
+      summary: Получить отчеты по студенту
+      description: Возвращает различные отчеты по студенту
+      parameters:
+        - name: emp_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Отчеты
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Сессионная аутентификация через Flask session cookie
+    hmacAuth:
+      type: apiKey
+      in: header
+      name: X-API-Token
+      description: |
+        HMAC-SHA256 токен. Вычисляется как:
+        HMAC-SHA256(API_SECRET_KEY, timestamp + path + method)
+      x-otherHeaders:
+        X-Timestamp: Unix timestamp запроса
+
+  schemas:
+    Employee:
+      type: object
+      properties:
+        id:
+          type: integer
+        fio:
+          type: string
+          description: ФИО студента
+        phone:
+          type: string
+        group_name:
+          type: string
+        birth_date:
+          type: string
+          format: date
+        building:
+          type: string
+        entrance:
+          type: string
+        room_number:
+          type: string
+        vacation:
+          type: string
+        vacation_history:
+          type: array
+          items:
+            type: string
+        extra_data:
+          type: object
+          additionalProperties: true
+        representatives:
+          type: array
+          items:
+            type: object
+        education_level:
+          type: string
+        notes:
+          type: string
+        photo:
+          type: string
+
+    EmployeeInput:
+      type: object
+      properties:
+        fio:
+          type: string
+        phone:
+          type: string
+        group_name:
+          type: string
+        birth_date:
+          type: string
+          format: date
+        building:
+          type: string
+        entrance:
+          type: string
+        room_number:
+          type: string
+        education_level:
+          type: string
+        notes:
+          type: string
+        extra_data:
+          type: object
+          additionalProperties: true
+
+    Admin:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        role:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        fio:
+          type: string
+
+    Room:
+      type: object
+      properties:
+        id:
+          type: integer
+        building:
+          type: string
+        entrance:
+          type: string
+        floor:
+          type: integer
+        room_number:
+          type: string
+        capacity:
+          type: integer
+        max_occupants:
+          type: integer
+        excluded_from_duty:
+          type: boolean
+        category_id:
+          type: integer
+        category_name:
+          type: string
+        students_count:
+          type: integer
+        students:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              fio:
+                type: string
+              paid:
+                type: boolean
+              payment_date:
+                type: string
+                format: date-time
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        employee_id:
+          type: integer
+        amount:
+          type: number
+        payment_date:
+          type: string
+          format: date-time
+        payment_month:
+          type: string
+        receipt_file:
+          type: string
+        status:
+          type: string
+          enum: [assigned, pending, accepted, rejected]
+        audit_comment:
+          type: string
+        audited_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+        description:
+          type: string
+        event_date:
+          type: string
+          format: date
+        event_time:
+          type: string
+          format: time
+        location:
+          type: string
+        admin_fio:
+          type: string
+        coauthor_fio:
+          type: string
+        organizers:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Student:
+      type: object
+      properties:
+        id:
+          type: integer
+        fio:
+          type: string
+        phone:
+          type: string
+        group_name:
+          type: string
+        building:
+          type: string
+        entrance:
+          type: string
+        room_number:
+          type: string
+        birth_date:
+          type: string
+          format: date
+        photo:
+          type: string
