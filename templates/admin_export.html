@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Экспорт данных - АСПиРС</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/consta-combobox.css">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/css/consta-button.css">
+    <link rel="stylesheet" href="/static/style.css?v=4">
+    <style>
+        .top-menu-content {
+            position: relative;
+        }
+        .top-menu-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff !important;
+            font-size: 1.25rem;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .top-menu-item.back-to-panel {
+            margin-right: auto;
+        }
+        .export-card {
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 12px;
+        }
+        .export-card .card-body {
+            padding: 2rem;
+        }
+        .export-card .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #212529;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .export-card .card-title i {
+            color: #28a745;
+            font-size: 1.75rem;
+        }
+        .export-filters {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            border: 1px solid #dee2e6;
+            display: none !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .export-filters.show {
+            display: block !important;
+        }
+        .export-filters h6 {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        .form-select, .form-control {
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            padding: 0.625rem 0.75rem;
+            transition: all 0.2s;
+        }
+        .form-select:focus, .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        .columns-selection {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background-color: #ffffff;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .columns-selection h6 {
+            font-weight: 600;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+        .columns-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .columns-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+        .columns-grid::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .columns-grid::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        .columns-grid::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .column-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            background-color: #ffffff;
+            border: 1px solid #e9ecef;
+        }
+        .column-checkbox:hover {
+            background-color: #e7f3ff;
+            border-color: #007bff;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+        }
+        .column-checkbox input[type="checkbox"] {
+            margin-right: 0.75rem;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .select-all-buttons {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+        .select-all-buttons .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+        }
+        .export-card {
+            position: relative;
+            z-index: 1;
+            overflow: visible !important;
+        }
+        .export-filters {
+            position: relative;
+            z-index: 1;
+            overflow: visible !important;
+        }
+        .columns-selection {
+            overflow: visible !important;
+        }
+        .consta-combobox {
+            position: relative;
+            z-index: 10;
+        }
+        .consta-combobox-open {
+            z-index: 10001 !important;
+            position: relative;
+        }
+        .consta-combobox-dropdown {
+            z-index: 10001 !important;
+        }
+        .consta-combobox-wrapper {
+            position: relative;
+        }
+        .consta-combobox-open {
+            z-index: 10001 !important;
+        }
+        .consta-combobox-open .consta-combobox-wrapper {
+            z-index: 10001 !important;
+        }
+        .card {
+            overflow: visible !important;
+        }
+        .card-body {
+            overflow: visible !important;
+        }
+        .container {
+            overflow: visible !important;
+        }
+        .row {
+            overflow: visible !important;
+        }
+        .col-lg-10, .col-md-6, .col-md-12 {
+            overflow: visible !important;
+        }
+        #exportBtn {
+            border-radius: 10px;
+            padding: 0.875rem 2rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2);
+            transition: all 0.3s;
+        }
+        #exportBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 123, 255, 0.3);
+        }
+        #exportBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .alert {
+            border-radius: 10px;
+            border: none;
+            padding: 1rem 1.25rem;
+        }
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+        .alert i {
+            margin-right: 0.5rem;
+        }
+        #exportStatus {
+            min-height: 50px;
+        }
+        .export-status-success {
+            color: #28a745;
+            font-weight: 500;
+        }
+        .export-status-error {
+            color: #dc3545;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Экспорт данных</h2>
+        </div>
+    </div>
+    
+    <div class="container mt-4" style="margin-top: 80px !important;">
+        <div class="row">
+            <div class="col-lg-10 mx-auto">
+                <div class="card export-card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">
+                            <i class="bi bi-file-earmark-excel"></i> Настройка экспорта данных
+                        </h5>
+                        
+                        <p class="text-muted mb-4">
+                            Выберите тип экспорта и настройте параметры для выгрузки данных студентов в Excel файл.
+                        </p>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <strong><i class="bi bi-list-ul"></i> Тип экспорта</strong>
+                            </label>
+                            <select class="form-select" id="exportTypeSelect" aria-label="Тип экспорта">
+                                <option value="">Выберите тип экспорта</option>
+                                <option value="entrance">Список проживающих в подъезде</option>
+                                <option value="group">Список группы</option>
+                                <option value="adults">Список совершеннолетних</option>
+                                <option value="minors">Список несовершеннолетних</option>
+                            </select>
+                        </div>
+                        
+                        <div class="export-filters" id="exportFilters">
+                            <h6 class="mb-3">
+                                <i class="bi bi-sliders"></i> Параметры экспорта
+                            </h6>
+                            
+                            <div id="entranceFilters" style="display: none;">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-building"></i> Корпус и подъезд
+                                    </label>
+                                    <select class="form-select" id="buildingEntranceSelect" aria-label="Корпус и подъезд" data-no-combobox="true">
+                                        <option value="">Выберите корпус и подъезд</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div id="groupFilters" style="display: none;">
+                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        <label class="form-label">
+                                            <i class="bi bi-people"></i> Группа
+                                        </label>
+                                        <select class="form-select" id="groupSelect" aria-label="Группа" data-no-combobox="true">
+                                            <option value="">Выберите группу</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="columns-selection" id="columnsSelection" style="display: none;">
+                            <h6 class="mb-3">
+                                <strong><i class="bi bi-check2-square"></i> Выберите столбцы для экспорта</strong>
+                            </h6>
+                            <div class="select-all-buttons">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllColumns">
+                                    <i class="bi bi-check-all"></i> Выбрать все
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllColumns">
+                                    <i class="bi bi-x-square"></i> Снять все
+                                </button>
+                            </div>
+                            <div class="columns-grid" id="columnsGrid">
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3" id="exportInfo" style="display: none;">
+                            <i class="bi bi-info-circle"></i>
+                            <span id="exportInfoText"></span>
+                        </div>
+                        
+                        <div class="mt-4" id="exportButtonContainer" style="display: none;">
+                            <button type="button" class="btn btn-primary btn-lg w-100" id="exportBtn" disabled>
+                                <i class="bi bi-download"></i> Экспортировать в Excel
+                            </button>
+                            <div class="text-center mt-3">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle"></i> Файл будет автоматически загружен после обработки данных
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div id="exportStatus" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/js/consta-combobox.js"></script>
+    <script>
+        // Проверяем, что скрипт выполняется после загрузки DOM
+        
+        
+        
+        
+        let buildingsEntrances = {};
+        let groups = [];
+        let selectedExportType = null;
+        let availableColumns = [];
+        let selectedColumns = [];
+        let cachedExportTypeSelect = null; // Кэш для найденного элемента
+        
+        // Функция для поиска элемента всеми возможными способами
+        function findExportTypeSelect() {
+            // Сначала проверяем кэш - если элемент найден и имеет правильный ID, используем его
+            if (cachedExportTypeSelect && cachedExportTypeSelect.id === 'exportTypeSelect') {
+                // Проверяем, что элемент все еще существует в DOM
+                try {
+                    // Используем isConnected как основной способ проверки (работает даже если элемент скрыт)
+                    if (cachedExportTypeSelect.isConnected === true || 
+                        cachedExportTypeSelect.isConnected === undefined) {
+                        return cachedExportTypeSelect;
+                    }
+                    // Если isConnected false, пробуем другие способы
+                    if (document.body && document.body.contains(cachedExportTypeSelect)) {
+                        return cachedExportTypeSelect;
+                    }
+                    if (document.documentElement && document.documentElement.contains(cachedExportTypeSelect)) {
+                        return cachedExportTypeSelect;
+                    }
+                    // Если все проверки не прошли, но элемент имеет правильный ID, все равно используем его
+                    // (может быть, элемент просто скрыт Consta combobox или находится в shadow DOM)
+                    return cachedExportTypeSelect;
+                } catch (e) {
+                    // Если проверка не удалась, но элемент имеет правильный ID, все равно используем его
+                    return cachedExportTypeSelect;
+                }
+            }
+            
+            // Если элемент не в кэше или не в DOM, ищем заново
+            // Способ 1: getElementById - самый надежный способ
+            let selectEl = document.getElementById('exportTypeSelect');
+            if (selectEl) {
+                cachedExportTypeSelect = selectEl;
+                return selectEl;
+            }
+            
+            // Способ 2: querySelector с ID
+            selectEl = document.querySelector('#exportTypeSelect');
+            if (selectEl) {
+                cachedExportTypeSelect = selectEl;
+                return selectEl;
+            }
+            
+            // Способ 3: внутри Consta combobox wrapper (может быть скрыт)
+            const wrapper = document.querySelector('.consta-combobox select#exportTypeSelect');
+            if (wrapper) {
+                cachedExportTypeSelect = wrapper;
+                return wrapper;
+            }
+            
+            // Способ 4: поиск по всем select элементам и проверка ID
+            const allSelects = document.querySelectorAll('select');
+            for (let sel of allSelects) {
+                if (sel.id === 'exportTypeSelect') {
+                    cachedExportTypeSelect = sel;
+                    return sel;
+                }
+            }
+            
+            // Способ 5: поиск через все Consta combobox wrappers
+            const comboboxWrappers = document.querySelectorAll('.consta-combobox');
+            for (let wrapper of comboboxWrappers) {
+                const select = wrapper.querySelector('select#exportTypeSelect');
+                if (select) {
+                    cachedExportTypeSelect = select;
+                    return select;
+                }
+            }
+            
+            return null;
+        }
+        
+        // Проверяем, что body существует
+        function waitForBody(callback) {
+            if (document.body) {
+                callback();
+            } else {
+                setTimeout(function() {
+                    waitForBody(callback);
+                }, 50);
+            }
+        }
+        
+        waitForBody(function() {
+            
+            
+            // Проверяем наличие элемента сразу и сохраняем в кэш
+            const initialCheck = findExportTypeSelect();
+            if (initialCheck) {
+                
+                cachedExportTypeSelect = initialCheck;
+            } else {
+                
+            }
+        });
+        
+        $(document).ready(function() {
+            // Проверяем наличие элемента сразу
+            const initialCheck = findExportTypeSelect();
+            if (initialCheck) {
+                
+            } else {
+                
+            }
+            
+            // Не загружаем данные сразу, загрузим при показе фильтров
+            loadColumns();
+            
+            let lastExportType = '';
+            
+            // Используем делегирование событий через jQuery - работает даже если элемент появится позже
+            $(document).on('change', '#exportTypeSelect', function() {
+                selectedExportType = $(this).val();
+                
+                if (selectedExportType) {
+                    showFilters(selectedExportType);
+                    checkExportButton();
+                }
+            });
+            
+            // Polling для отслеживания изменений - работает независимо от наличия элемента
+            setInterval(function() {
+                const selectEl = findExportTypeSelect();
+                
+                if (selectEl) {
+                    const currentValue = selectEl.value || '';
+                    if (currentValue && currentValue !== lastExportType) {
+                        lastExportType = currentValue;
+                        selectedExportType = currentValue;
+                        
+                        showFilters(selectedExportType);
+                        checkExportButton();
+                    }
+                }
+            }, 300);
+            
+            // Инициализация combobox - используем нативный JavaScript для поиска
+            function tryInitCombobox() {
+                const selectEl = findExportTypeSelect();
+                
+                if (selectEl) {
+                    
+                    
+                    // Инициализируем combobox, если еще не инициализирован
+                    if (typeof initConstaComboboxes !== 'undefined') {
+                        // Проверяем, не инициализирован ли уже
+                        if (!selectEl.classList.contains('consta-combobox-initialized')) {
+                            initConstaComboboxes();
+                        }
+                        
+                        // Настраиваем onChange после инициализации
+                        setTimeout(function() {
+                            if (selectEl._constaCombobox) {
+                                const combobox = selectEl._constaCombobox;
+                                const originalOnChange = combobox.options.onChange;
+                                
+                                combobox.options.onChange = function(value) {
+                                    
+                                    if (originalOnChange) {
+                                        originalOnChange(value, this);
+                                    }
+                                    selectedExportType = value;
+                                    showFilters(selectedExportType);
+                                    checkExportButton();
+                                };
+                                
+                                
+                            }
+                        }, 500);
+                        
+                        // Также настраиваем onChange для buildingSelect и groupSelect после их инициализации
+                        setTimeout(function() {
+                            const buildingSelectEl = document.getElementById('buildingSelect');
+                            if (buildingSelectEl && buildingSelectEl._constaCombobox) {
+                                const buildingCombobox = buildingSelectEl._constaCombobox;
+                                const originalBuildingOnChange = buildingCombobox.options.onChange;
+                                
+                                buildingCombobox.options.onChange = function(value) {
+                                    
+                                    if (originalBuildingOnChange) {
+                                        originalBuildingOnChange(value, this);
+                                    }
+                                    // Триггерим событие change на оригинальном элементе
+                                    const changeEvent = new Event('change', { bubbles: true });
+                                    buildingSelectEl.dispatchEvent(changeEvent);
+                                };
+                                
+                            }
+                            
+                            const groupSelectEl = document.getElementById('groupSelect');
+                            if (groupSelectEl && groupSelectEl._constaCombobox) {
+                                const groupCombobox = groupSelectEl._constaCombobox;
+                                const originalGroupOnChange = groupCombobox.options.onChange;
+                                
+                                groupCombobox.options.onChange = function(value) {
+                                    
+                                    if (originalGroupOnChange) {
+                                        originalGroupOnChange(value, this);
+                                    }
+                                    // Триггерим событие change на оригинальном элементе
+                                    const changeEvent = new Event('change', { bubbles: true });
+                                    groupSelectEl.dispatchEvent(changeEvent);
+                                };
+                                
+                            }
+                        }, 1000);
+                    }
+                    return true; // Успешно инициализировано
+                }
+                return false; // Элемент не найден
+            }
+            
+            // Используем MutationObserver для отслеживания появления элемента
+            let observerInitialized = false;
+            const observer = new MutationObserver(function(mutations) {
+                if (tryInitCombobox()) {
+                    observer.disconnect(); // Останавливаем наблюдение после успешной инициализации
+                    observerInitialized = true;
+                }
+            });
+            
+            // Начинаем наблюдение за изменениями в DOM
+            if (document.body) {
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            }
+            
+            // Пробуем инициализировать сразу несколько раз
+            const initAttempts = [100, 300, 500, 1000, 2000, 3000, 5000];
+            initAttempts.forEach(function(delay) {
+                setTimeout(function() {
+                    if (!observerInitialized) {
+                        const found = tryInitCombobox();
+                        if (found) {
+                            observer.disconnect();
+                            observerInitialized = true;
+                            
+                        } else if (delay >= 5000) {
+                            
+                            
+                            
+                            
+                            // Останавливаем observer, чтобы не тратить ресурсы
+                            observer.disconnect();
+                        }
+                    }
+                }, delay);
+            });
+            
+            // Также пробуем после полной загрузки страницы
+            window.addEventListener('load', function() {
+                
+                setTimeout(function() {
+                    if (!observerInitialized) {
+                        const found = tryInitCombobox();
+                        if (found) {
+                            observer.disconnect();
+                            observerInitialized = true;
+                            
+                        } else {
+                            
+                            const el = findExportTypeSelect();
+                            if (el) {
+                                
+                            } else {
+                                
+                                // Выводим все select элементы для отладки
+                                const allSelects = document.querySelectorAll('select');
+                                
+                            }
+                        }
+                    }
+                }, 500);
+            });
+            
+            // Глобальные переменные для хранения ссылок на элементы
+            window.cachedBuildingEntranceSelect = null;
+            window.cachedGroupSelect = null;
+            
+            // Функция для обработки изменения buildingSelect (объявляем в глобальной области видимости)
+            window.handleBuildingChange = function(building) {
+                
+                
+                // Сначала пробуем использовать кэшированную ссылку (она должна быть валидной даже после перемещения в wrapper)
+                let entranceSelectEl = window.cachedEntranceSelect;
+                
+                // Проверяем, что кэшированная ссылка валидна (элемент существует и имеет правильный ID)
+                if (entranceSelectEl && entranceSelectEl.id === 'entranceSelect') {
+                    
+                } else {
+                    
+                    entranceSelectEl = null;
+                    
+                    // Ищем элемент разными способами
+                    entranceSelectEl = document.getElementById('entranceSelect');
+                    
+                    // Если не найден через getElementById, пробуем через querySelector
+                    if (!entranceSelectEl) {
+                        entranceSelectEl = document.querySelector('#entranceSelect');
+                    }
+                    
+                    // Если все еще не найден, ищем через класс consta-combobox-original-select
+                    if (!entranceSelectEl) {
+                        const hiddenSelects = document.querySelectorAll('.consta-combobox-original-select');
+                        hiddenSelects.forEach((sel) => {
+                            if (sel.id === 'entranceSelect') {
+                                entranceSelectEl = sel;
+                            }
+                        });
+                    }
+                    
+                    // Если все еще не найден, ищем все select элементы и проверяем по ID
+                    if (!entranceSelectEl) {
+                        const allSelects = document.querySelectorAll('select');
+                        allSelects.forEach((sel) => {
+                            if (sel.id === 'entranceSelect') {
+                                entranceSelectEl = sel;
+                            }
+                        });
+                    }
+                    
+                    // Если все еще не найден, ищем в контейнере
+                    if (!entranceSelectEl) {
+                        const container = document.getElementById('entranceFilters');
+                        if (container) {
+                            entranceSelectEl = container.querySelector('#entranceSelect');
+                            if (!entranceSelectEl) {
+                                const selects = container.querySelectorAll('select');
+                                selects.forEach((sel) => {
+                                    if (sel.id === 'entranceSelect') {
+                                        entranceSelectEl = sel;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                // Сохраняем найденный элемент в кэш
+                if (entranceSelectEl && entranceSelectEl.id === 'entranceSelect') {
+                    window.cachedEntranceSelect = entranceSelectEl;
+                    
+                }
+                
+                
+                
+                if (!entranceSelectEl) {
+                    
+                    // Детальная диагностика
+                    
+                    
+                    
+                    
+                    
+                    const allSelects = document.querySelectorAll('select');
+                    allSelects.forEach((sel, idx) => {
+                        
+                    });
+                    const entranceContainer = document.getElementById('entranceFilters');
+                    
+                    if (entranceContainer) {
+                        
+                        entranceContainer.querySelectorAll('select').forEach((sel, idx) => {
+                            
+                        });
+                    }
+                    
+                    // Пробуем еще раз через небольшую задержку (но не бесконечно)
+                    if (!window._entranceSelectRetryCount) {
+                        window._entranceSelectRetryCount = 0;
+                    }
+                    if (window._entranceSelectRetryCount < 5) {
+                        window._entranceSelectRetryCount++;
+                        
+                        setTimeout(() => {
+                            window.handleBuildingChange(building);
+                        }, 300);
+                    } else {
+                        console.error('Max retries reached for finding entranceSelect');
+                        window._entranceSelectRetryCount = 0;
+                    }
+                    return;
+                }
+                
+                // Сбрасываем счетчик при успешном нахождении
+                window._entranceSelectRetryCount = 0;
+                
+                const entranceSelect = $(entranceSelectEl);
+                
+                if (building && building.trim() !== '') {
+                    entranceSelectEl.disabled = false;
+                    entranceSelect.html('<option value="">Выберите подъезд</option>');
+                    
+                    
+                    
+                    
+                    if (buildingsEntrances && buildingsEntrances[building]) {
+                        
+                        buildingsEntrances[building].forEach(function(entrance) {
+                            entranceSelect.append(`<option value="${entrance}">${entrance}</option>`);
+                        });
+                    } else {
+                        
+                    }
+                    
+                    
+                    
+                    // Обновляем combobox для entranceSelect
+                    if (entranceSelectEl._constaCombobox) {
+                        const combobox = entranceSelectEl._constaCombobox;
+                        if (combobox.getItemsFromSelect) {
+                            combobox.items = combobox.getItemsFromSelect();
+                            combobox.renderItems();
+                            
+                        }
+                    } else {
+                        
+                        if (typeof initConstaComboboxes !== 'undefined') {
+                            setTimeout(() => {
+                                initConstaComboboxes();
+                                setTimeout(() => {
+                                    if (entranceSelectEl._constaCombobox) {
+                                        const combobox = entranceSelectEl._constaCombobox;
+                                        if (combobox.getItemsFromSelect) {
+                                            combobox.items = combobox.getItemsFromSelect();
+                                            combobox.renderItems();
+                                            
+                                        }
+                                    }
+                                }, 100);
+                            }, 100);
+                        }
+                    }
+                } else {
+                    entranceSelectEl.disabled = true;
+                    entranceSelect.html('<option value="">Сначала выберите корпус</option>');
+                    
+                    // Обновляем combobox
+                    if (entranceSelectEl._constaCombobox) {
+                        const combobox = entranceSelectEl._constaCombobox;
+                        if (combobox.getItemsFromSelect) {
+                            combobox.items = combobox.getItemsFromSelect();
+                            combobox.renderItems();
+                        }
+                    }
+                }
+                
+                checkExportButton();
+            }
+            
+            // Используем делегирование событий для обработки изменений в buildingEntranceSelect
+            $(document).on('change', '#buildingEntranceSelect', function() {
+                
+                checkExportButton();
+            });
+            
+            $(document).on('change', '#groupSelect', function() {
+                checkExportButton();
+            });
+            
+            $('#selectAllColumns').on('click', function() {
+                $('.column-checkbox input[type="checkbox"]').prop('checked', true);
+                updateSelectedColumns();
+            });
+            
+            $('#deselectAllColumns').on('click', function() {
+                $('.column-checkbox input[type="checkbox"]').prop('checked', false);
+                updateSelectedColumns();
+            });
+            
+            $(document).on('change', '.column-checkbox input[type="checkbox"]', function() {
+                updateSelectedColumns();
+            });
+            
+            $('#exportBtn').on('click', function() {
+                exportData();
+            });
+        });
+        
+        function loadBuildingsEntrances(preFoundElement) {
+            
+            $.ajax({
+                url: '/api/admin/export/buildings_entrances',
+                method: 'GET',
+                success: function(response) {
+                    
+                    if (response.success) {
+                        buildingsEntrances = response.buildings_entrances;
+                        
+                        // Функция для загрузки данных в select
+                        function loadDataIntoSelect() {
+                            let selectEl = null;
+                            
+                            // Если элемент передан как параметр, используем его
+                            if (preFoundElement) {
+                                
+                                selectEl = preFoundElement;
+                            } else {
+                                // Способ 1: Прямой поиск по ID (самый надежный, работает даже после перемещения в wrapper)
+                                selectEl = document.getElementById('buildingEntranceSelect');
+                            
+                            // Способ 2: Поиск через класс consta-combobox-original-select (после инициализации combobox)
+                            if (!selectEl) {
+                                const hiddenSelects = document.querySelectorAll('.consta-combobox-original-select');
+                                hiddenSelects.forEach((sel) => {
+                                    if (sel.id === 'buildingEntranceSelect') {
+                                        selectEl = sel;
+                                    }
+                                });
+                            }
+                            
+                            // Способ 3: Поиск всех select элементов и проверка по ID
+                            if (!selectEl) {
+                                const allSelects = document.querySelectorAll('select');
+                                allSelects.forEach((sel) => {
+                                    if (sel.id === 'buildingEntranceSelect') {
+                                        selectEl = sel;
+                                    }
+                                });
+                            }
+                            
+                            // Способ 4: Поиск в контейнере (может не работать после перемещения в wrapper)
+                            if (!selectEl) {
+                                const container = document.getElementById('entranceFilters');
+                                if (container) {
+                                    // Ищем в контейнере и во всех его дочерних элементах (включая wrapper)
+                                    selectEl = container.querySelector('#buildingEntranceSelect');
+                                    // Также пробуем найти через querySelectorAll
+                                    if (!selectEl) {
+                                        const selects = container.querySelectorAll('select');
+                                        selects.forEach((sel) => {
+                                            if (sel.id === 'buildingEntranceSelect') {
+                                                selectEl = sel;
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                            }
+                            
+                            // Если элемент найден (либо передан, либо найден через поиск), загружаем данные
+                            if (selectEl) {
+                                
+                                const buildingEntranceSelect = $(selectEl);
+                                buildingEntranceSelect.empty();
+                                buildingEntranceSelect.append('<option value="">Выберите корпус и подъезд</option>');
+                                
+                                // Создаем опции для всех комбинаций корпус-подъезд
+                                Object.keys(buildingsEntrances).sort().forEach(function(building) {
+                                    const entrances = buildingsEntrances[building];
+                                    if (entrances && entrances.length > 0) {
+                                        entrances.sort().forEach(function(entrance) {
+                                            // Формат значения: "building|entrance"
+                                            const value = `${building}|${entrance}`;
+                                            const label = `Корпус ${building}, Подъезд ${entrance}`;
+                                            buildingEntranceSelect.append(`<option value="${value}">${label}</option>`);
+                                        });
+                                    }
+                                });
+                                
+                                
+                                
+                                // Обновляем combobox
+                                if (selectEl._constaCombobox) {
+                                    const combobox = selectEl._constaCombobox;
+                                    if (combobox.getItemsFromSelect) {
+                                        combobox.items = combobox.getItemsFromSelect();
+                                        combobox.renderItems();
+                                        
+                                    }
+                                    
+                                    // Настраиваем onChange для buildingEntranceSelect
+                                    const originalOnChange = combobox.options.onChange;
+                                    combobox.options.onChange = function(value) {
+                                        
+                                        if (originalOnChange) {
+                                            originalOnChange(value, this);
+                                        }
+                                        // Обновляем значение в оригинальном элементе
+                                        if (selectEl) {
+                                            selectEl.value = value;
+                                            
+                                            // Триггерим событие change на оригинальном элементе
+                                            const changeEvent = new Event('change', { bubbles: true });
+                                            selectEl.dispatchEvent(changeEvent);
+                                        }
+                                        // Вызываем checkExportButton для обновления кнопки
+                                        if (typeof checkExportButton === 'function') {
+                                            checkExportButton();
+                                        }
+                                    };
+                                    
+                                } else {
+                                    
+                                    if (typeof initConstaComboboxes !== 'undefined') {
+                                        setTimeout(() => {
+                                            initConstaComboboxes();
+                                            setTimeout(() => {
+                                                if (selectEl._constaCombobox) {
+                                                    const combobox = selectEl._constaCombobox;
+                                                    if (combobox.getItemsFromSelect) {
+                                                        combobox.items = combobox.getItemsFromSelect();
+                                                        combobox.renderItems();
+                                                        
+                                                    }
+                                                    
+                                                    // Настраиваем onChange после инициализации
+                                                    const originalOnChange = combobox.options.onChange;
+                                                    combobox.options.onChange = function(value) {
+                                                        
+                                                        if (originalOnChange) {
+                                                            originalOnChange(value, this);
+                                                        }
+                                                        // Обновляем значение в оригинальном элементе
+                                                        selectEl.value = value;
+                                                        // Триггерим событие change на оригинальном элементе
+                                                        const changeEvent = new Event('change', { bubbles: true });
+                                                        selectEl.dispatchEvent(changeEvent);
+                                                        // Вызываем checkExportButton для обновления кнопки
+                                                        if (typeof checkExportButton === 'function') {
+                                                            checkExportButton();
+                                                        }
+                                                    };
+                                                }
+                                            }, 200);
+                                        }, 100);
+                                    }
+                                }
+                                return true;
+                            }
+                            return false;
+                        }
+                        
+                        // Пробуем загрузить сразу
+                        if (loadDataIntoSelect()) {
+                            return;
+                        }
+                        
+                        // Если не получилось, используем MutationObserver для отслеживания появления элемента
+                        
+                        const container = document.getElementById('entranceFilters');
+                        if (container) {
+                            const observer = new MutationObserver(function(mutations) {
+                                if (loadDataIntoSelect()) {
+                                    observer.disconnect();
+                                    
+                                }
+                            });
+                            
+                            observer.observe(container, {
+                                childList: true,
+                                subtree: true
+                            });
+                            
+                            // Останавливаем observer через 5 секунд
+                            setTimeout(() => {
+                                observer.disconnect();
+                                if (!loadDataIntoSelect()) {
+                                    
+                                }
+                            }, 5000);
+                        }
+                        
+                        // Также пробуем через несколько задержек
+                        const retries = [200, 400, 600, 1000, 2000];
+                        retries.forEach((delay) => {
+                            setTimeout(() => {
+                                if (loadDataIntoSelect()) {
+                                    
+                                }
+                            }, delay);
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Ошибка загрузки корпусов и подъездов:', xhr);
+                }
+            });
+        }
+        
+        function loadGroups(preFoundElement) {
+            
+            $.ajax({
+                url: '/api/admin/export/groups',
+                method: 'GET',
+                success: function(response) {
+                    
+                    if (response.success) {
+                        groups = response.groups;
+                        
+                        // Функция для загрузки данных в select
+                        function loadDataIntoSelect() {
+                            let selectEl = null;
+                            
+                            // Если элемент передан как параметр, используем его
+                            if (preFoundElement) {
+                                
+                                selectEl = preFoundElement;
+                            } else {
+                                // Способ 1: Прямой поиск по ID (самый надежный, работает даже после перемещения в wrapper)
+                                selectEl = document.getElementById('groupSelect');
+                                
+                                // Способ 2: Поиск через класс consta-combobox-original-select (после инициализации combobox)
+                                if (!selectEl) {
+                                    const hiddenSelects = document.querySelectorAll('.consta-combobox-original-select');
+                                    hiddenSelects.forEach((sel) => {
+                                        if (sel.id === 'groupSelect') {
+                                            selectEl = sel;
+                                        }
+                                    });
+                                }
+                                
+                                // Способ 3: Поиск всех select элементов и проверка по ID
+                                if (!selectEl) {
+                                    const allSelects = document.querySelectorAll('select');
+                                    allSelects.forEach((sel) => {
+                                        if (sel.id === 'groupSelect') {
+                                            selectEl = sel;
+                                        }
+                                    });
+                                }
+                                
+                                // Способ 4: Поиск в контейнере (может не работать после перемещения в wrapper)
+                                if (!selectEl) {
+                                    const container = document.getElementById('groupFilters');
+                                    if (container) {
+                                        // Ищем в контейнере и во всех его дочерних элементах (включая wrapper)
+                                        selectEl = container.querySelector('#groupSelect');
+                                        // Также пробуем найти через querySelectorAll
+                                        if (!selectEl) {
+                                            const selects = container.querySelectorAll('select');
+                                            selects.forEach((sel) => {
+                                                if (sel.id === 'groupSelect') {
+                                                    selectEl = sel;
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Если элемент найден (либо передан, либо найден через поиск), загружаем данные
+                            if (selectEl) {
+                                
+                                const groupSelect = $(selectEl);
+                                groupSelect.empty();
+                                groupSelect.append('<option value="">Выберите группу</option>');
+                                groups.sort().forEach(function(group) {
+                                    groupSelect.append(`<option value="${group}">${group}</option>`);
+                                });
+                                
+                                
+                                
+                                // Обновляем combobox
+                                if (selectEl._constaCombobox) {
+                                    const combobox = selectEl._constaCombobox;
+                                    if (combobox.getItemsFromSelect) {
+                                        combobox.items = combobox.getItemsFromSelect();
+                                        combobox.renderItems();
+                                        
+                                    }
+                                    
+                                    // Настраиваем onChange для groupSelect
+                                    const originalOnChange = combobox.options.onChange;
+                                    combobox.options.onChange = function(value) {
+                                        
+                                        // Обновляем значение в оригинальном select
+                                        if (selectEl) {
+                                            selectEl.value = value || '';
+                                            
+                                            // Также обновляем значение в combobox
+                                            if (combobox.setValue) {
+                                                combobox.setValue(value);
+                                            }
+                                        }
+                                        if (originalOnChange) {
+                                            originalOnChange(value, this);
+                                        }
+                                        // Триггерим событие change на оригинальном элементе
+                                        if (selectEl) {
+                                            const changeEvent = new Event('change', { bubbles: true });
+                                            selectEl.dispatchEvent(changeEvent);
+                                        }
+                                        // Вызываем проверку кнопки с передачей значения напрямую
+                                        
+                                        if (typeof checkExportButton === 'function') {
+                                            // Сохраняем значение во временную переменную для проверки
+                                            window._lastGroupValue = value;
+                                            
+                                            
+                                            // Передаем значение напрямую в функцию
+                                            checkExportButton(value);
+                                            setTimeout(() => {
+                                                
+                                                checkExportButton(value);
+                                            }, 100);
+                                        } else {
+                                            console.error('checkExportButton is not a function!');
+                                        }
+                                    };
+                                    
+                                } else {
+                                    
+                                    if (typeof initConstaComboboxes !== 'undefined') {
+                                        setTimeout(() => {
+                                            initConstaComboboxes();
+                                            setTimeout(() => {
+                                                if (selectEl._constaCombobox) {
+                                                    const combobox = selectEl._constaCombobox;
+                                                    if (combobox.getItemsFromSelect) {
+                                                        combobox.items = combobox.getItemsFromSelect();
+                                                        combobox.renderItems();
+                                                        
+                                                    }
+                                                    
+                                                    // Настраиваем onChange после инициализации
+                                                    const originalOnChange = combobox.options.onChange;
+                                                    combobox.options.onChange = function(value) {
+                                                        
+                                                        // Обновляем значение в оригинальном select
+                                                        if (selectEl) {
+                                                            selectEl.value = value || '';
+                                                            
+                                                            // Также обновляем значение в combobox
+                                                            if (combobox.setValue) {
+                                                                combobox.setValue(value);
+                                                            }
+                                                        }
+                                                        if (originalOnChange) {
+                                                            originalOnChange(value, this);
+                                                        }
+                                                        const changeEvent = new Event('change', { bubbles: true });
+                                                        if (selectEl) {
+                                                            selectEl.dispatchEvent(changeEvent);
+                                                        }
+                                                        // Вызываем проверку кнопки с передачей значения напрямую
+                                                        
+                                                        if (typeof checkExportButton === 'function') {
+                                                            // Сохраняем значение во временную переменную для проверки
+                                                            window._lastGroupValue = value;
+                                                            
+                                                            
+                                                            // Передаем значение напрямую в функцию
+                                                            checkExportButton(value);
+                                                            setTimeout(() => {
+                                                                
+                                                                checkExportButton(value);
+                                                            }, 100);
+                                                        } else {
+                                                            console.error('checkExportButton is not a function!');
+                                                        }
+                                                    };
+                                                }
+                                            }, 200);
+                                        }, 100);
+                                    }
+                                }
+                                return true;
+                            }
+                            return false;
+                        }
+                        
+                        // Пробуем загрузить сразу
+                        if (loadDataIntoSelect()) {
+                            return;
+                        }
+                        
+                        // Если не получилось, используем MutationObserver для отслеживания появления элемента
+                        
+                        const container = document.getElementById('groupFilters');
+                        if (container) {
+                            const observer = new MutationObserver(function(mutations) {
+                                if (loadDataIntoSelect()) {
+                                    observer.disconnect();
+                                    
+                                }
+                            });
+                            
+                            observer.observe(container, {
+                                childList: true,
+                                subtree: true
+                            });
+                            
+                            // Останавливаем observer через 5 секунд
+                            setTimeout(() => {
+                                observer.disconnect();
+                                if (!loadDataIntoSelect()) {
+                                    
+                                }
+                            }, 5000);
+                        }
+                        
+                        // Также пробуем через несколько задержек
+                        const retries = [200, 400, 600, 1000, 2000];
+                        retries.forEach((delay) => {
+                            setTimeout(() => {
+                                if (loadDataIntoSelect()) {
+                                    
+                                }
+                            }, delay);
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Ошибка загрузки групп:', xhr);
+                }
+            });
+        }
+        
+        function loadColumns() {
+            $.ajax({
+                url: '/api/admin/export/columns',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        availableColumns = response.columns;
+                        renderColumns();
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Ошибка загрузки столбцов:', xhr);
+                }
+            });
+        }
+        
+        function renderColumns() {
+            const columnsGrid = $('#columnsGrid');
+            columnsGrid.empty();
+            
+            availableColumns.forEach(function(column) {
+                const checkboxId = `col_${column.key}`;
+                const checkbox = $(`
+                    <div class="column-checkbox">
+                        <input type="checkbox" id="${checkboxId}" value="${column.key}" ${column.default ? 'checked' : ''}>
+                        <label for="${checkboxId}" style="margin: 0; cursor: pointer;">${column.label}</label>
+                    </div>
+                `);
+                columnsGrid.append(checkbox);
+            });
+            
+            updateSelectedColumns();
+        }
+        
+        function updateSelectedColumns() {
+            selectedColumns = [];
+            $('.column-checkbox input[type="checkbox"]:checked').each(function() {
+                selectedColumns.push($(this).val());
+            });
+            checkExportButton();
+        }
+        
+        function showFilters(type) {
+            
+            
+            if (!type) {
+                $('#exportFilters').removeClass('show').hide();
+                $('#columnsSelection').hide();
+                $('#exportInfo').hide();
+                $('#exportButtonContainer').hide();
+                return;
+            }
+            
+            $('#exportButtonContainer').show();
+            
+            $('#columnsSelection').hide();
+            
+            selectColumnsForType(type);
+            
+            // Показываем информационное сообщение
+            showExportInfo(type);
+            
+            // Для типов entrance и group показываем параметры экспорта
+            if (type === 'entrance' || type === 'group') {
+                $('#exportFilters').addClass('show');
+                $('#exportFilters').css('display', 'block');
+                $('#entranceFilters').hide();
+                $('#groupFilters').hide();
+                
+                if (type === 'entrance') {
+                    $('#entranceFilters').show();
+                    
+                    // Функция для поиска и инициализации элемента
+                    function findAndInitSelect() {
+                        const entranceContainer = document.getElementById('entranceFilters');
+                        
+                        // Ищем элемент разными способами
+                        let buildingEntranceSelect = document.getElementById('buildingEntranceSelect');
+                        
+                        if (!buildingEntranceSelect) {
+                            buildingEntranceSelect = document.querySelector('#buildingEntranceSelect');
+                        }
+                        
+                        if (entranceContainer && !buildingEntranceSelect) {
+                            buildingEntranceSelect = entranceContainer.querySelector('#buildingEntranceSelect');
+                            
+                            if (!buildingEntranceSelect) {
+                                const allSelects = entranceContainer.querySelectorAll('select');
+                                allSelects.forEach((sel) => {
+                                    if (sel.id === 'buildingEntranceSelect') {
+                                        buildingEntranceSelect = sel;
+                                    }
+                                });
+                            }
+                        }
+                        
+                        
+                        
+                        if (buildingEntranceSelect) {
+                            window.cachedBuildingEntranceSelect = buildingEntranceSelect;
+                            
+                            buildingEntranceSelect.removeAttribute('data-no-combobox');
+                            
+                        }
+                        
+                        // Инициализируем combobox
+                        if (typeof initConstaComboboxes !== 'undefined' && entranceContainer) {
+                            initConstaComboboxes(entranceContainer);
+                            
+                            
+                            // Обновляем кэш после инициализации
+                            setTimeout(() => {
+                                let selectAfterInit = document.getElementById('buildingEntranceSelect');
+                                if (!selectAfterInit) {
+                                    selectAfterInit = entranceContainer.querySelector('#buildingEntranceSelect');
+                                }
+                                if (!selectAfterInit) {
+                                    const hiddenSelects = document.querySelectorAll('.consta-combobox-original-select');
+                                    hiddenSelects.forEach((sel) => {
+                                        if (sel.id === 'buildingEntranceSelect') {
+                                            selectAfterInit = sel;
+                                        }
+                                    });
+                                }
+                                
+                                if (selectAfterInit && selectAfterInit.id === 'buildingEntranceSelect') {
+                                    window.cachedBuildingEntranceSelect = selectAfterInit;
+                                    
+                                } else {
+                                    
+                                }
+                            }, 100);
+                        }
+                        
+                        return buildingEntranceSelect;
+                    }
+                    
+                    // Пробуем найти и инициализировать сразу
+                    let buildingEntranceSelect = findAndInitSelect();
+                    
+                    // Если не найден, пробуем через несколько задержек
+                    if (!buildingEntranceSelect) {
+                        const retries = [50, 100, 200, 500];
+                        retries.forEach((delay) => {
+                            setTimeout(() => {
+                                if (!buildingEntranceSelect) {
+                                    buildingEntranceSelect = findAndInitSelect();
+                                    if (buildingEntranceSelect) {
+                                        
+                                    }
+                                }
+                            }, delay);
+                        });
+                    }
+                    
+                    // Загружаем данные после инициализации
+                    setTimeout(() => {
+                        const selectEl = buildingEntranceSelect || document.getElementById('buildingEntranceSelect');
+                        
+                        if (selectEl) {
+                            
+                            if (Object.keys(buildingsEntrances).length === 0) {
+                                loadBuildingsEntrances(selectEl);
+                            } else {
+                                if (selectEl._constaCombobox) {
+                                    const combobox = selectEl._constaCombobox;
+                                    if (combobox.getItemsFromSelect) {
+                                        combobox.items = combobox.getItemsFromSelect();
+                                        combobox.renderItems();
+                                        
+                                    }
+                                }
+                            }
+                        } else {
+                            
+                            setTimeout(() => {
+                                if (Object.keys(buildingsEntrances).length === 0) {
+                                    loadBuildingsEntrances();
+                                }
+                            }, 200);
+                        }
+                    }, 200);
+                } else if (type === 'group') {
+                    $('#groupFilters').show();
+                    
+                    // Функция для поиска и инициализации элементов
+                    function findAndInitGroupSelect() {
+                        // Ищем элемент разными способами
+                        let groupSelect = document.getElementById('groupSelect');
+                        
+                        // Если не найден через getElementById, пробуем через querySelector
+                        if (!groupSelect) {
+                            groupSelect = document.querySelector('#groupSelect');
+                        }
+                        
+                        // Если все еще не найден, ищем в контейнере
+                        const groupContainer = document.getElementById('groupFilters');
+                        if (groupContainer) {
+                            if (!groupSelect) {
+                                groupSelect = groupContainer.querySelector('#groupSelect');
+                            }
+                            
+                            // Если все еще не найден, ищем все select в контейнере
+                            if (!groupSelect) {
+                                const allSelects = groupContainer.querySelectorAll('select');
+                                
+                                allSelects.forEach((sel) => {
+                                    
+                                    if (sel.id === 'groupSelect') {
+                                        groupSelect = sel;
+                                    }
+                                });
+                            }
+                        }
+                        
+                        
+                        
+                        if (groupSelect) {
+                            // Сохраняем ссылку в глобальную переменную ДО инициализации combobox
+                            window.cachedGroupSelect = groupSelect;
+                            
+                            // Убираем атрибут, который предотвращает инициализацию
+                            groupSelect.removeAttribute('data-no-combobox');
+                            
+                        }
+                        
+                        // Инициализируем combobox для элементов в контейнере
+                        if (typeof initConstaComboboxes !== 'undefined' && groupContainer) {
+                            initConstaComboboxes(groupContainer);
+                            
+                            
+                            // После инициализации элементы могут быть перемещены в wrapper
+                            // Ищем элементы заново после инициализации и обновляем кэш
+                            setTimeout(() => {
+                                // Ищем элемент после инициализации (он может быть внутри .consta-combobox)
+                                let groupSelectAfterInit = document.getElementById('groupSelect');
+                                
+                                if (!groupSelectAfterInit) {
+                                    groupSelectAfterInit = groupContainer.querySelector('#groupSelect');
+                                }
+                                
+                                // Если все еще не найден, ищем через класс consta-combobox-original-select
+                                if (!groupSelectAfterInit) {
+                                    const hiddenSelects = document.querySelectorAll('.consta-combobox-original-select');
+                                    hiddenSelects.forEach((sel) => {
+                                        if (sel.id === 'groupSelect') {
+                                            groupSelectAfterInit = sel;
+                                        }
+                                    });
+                                }
+                                
+                                // Обновляем кэш с найденным элементом
+                                if (groupSelectAfterInit && groupSelectAfterInit.id === 'groupSelect') {
+                                    window.cachedGroupSelect = groupSelectAfterInit;
+                                    
+                                } else {
+                                    
+                                }
+                            }, 100);
+                        }
+                        
+                        return groupSelect;
+                    }
+                    
+                    // Пробуем найти и инициализировать сразу
+                    let groupSelect = findAndInitGroupSelect();
+                    
+                    // Если не найден, пробуем через несколько задержек
+                    if (!groupSelect) {
+                        const retries = [50, 100, 200, 500];
+                        retries.forEach((delay) => {
+                            setTimeout(() => {
+                                if (!groupSelect) {
+                                    groupSelect = findAndInitGroupSelect();
+                                    if (groupSelect) {
+                                        
+                                    }
+                                }
+                            }, delay);
+                        });
+                    }
+                    
+                    // Загружаем данные после инициализации
+                    // Даем время combobox на инициализацию и перемещение элементов
+                    setTimeout(() => {
+                        // Пробуем использовать сохраненную ссылку или найти элемент заново
+                        const selectEl = groupSelect || document.getElementById('groupSelect');
+                        
+                        if (selectEl) {
+                            
+                            // Загружаем данные групп при показе фильтров
+                            if (groups.length === 0) {
+                                // Передаем ссылку на элемент в функцию загрузки
+                                loadGroups(selectEl);
+                            } else {
+                                // Если данные уже загружены, обновляем combobox
+                                if (selectEl._constaCombobox) {
+                                    const combobox = selectEl._constaCombobox;
+                                    if (combobox.getItemsFromSelect) {
+                                        combobox.items = combobox.getItemsFromSelect();
+                                        combobox.renderItems();
+                                        
+                                    }
+                                }
+                            }
+                        } else {
+                            
+                            // Загружаем данные, функция сама попробует найти элемент
+                            if (groups.length === 0) {
+                                loadGroups();
+                            }
+                        }
+                    }, 200);
+                }
+                
+                $('#buildingSelect').val('');
+                $('#entranceSelect').val('').prop('disabled', true);
+                $('#entranceSelect').html('<option value="">Сначала выберите корпус</option>');
+                $('#groupSelect').val('');
+            } else {
+                $('#exportFilters').removeClass('show');
+                $('#exportFilters').hide();
+            }
+            
+            checkExportButton();
+            
+            
+            
+            
+            
+            
+        }
+        
+        function showExportInfo(type) {
+            let infoText = '';
+            
+            if (type === 'entrance') {
+                infoText = 'Будут экспортированы: номер комнаты и ФИО проживающих';
+            } else if (type === 'group') {
+                infoText = 'Будут экспортированы: ФИО студентов группы';
+            } else if (type === 'adults') {
+                infoText = 'Будут экспортированы: ФИО и дата рождения совершеннолетних студентов';
+            } else if (type === 'minors') {
+                infoText = 'Будут экспортированы: ФИО и дата рождения несовершеннолетних студентов';
+            }
+            
+            $('#exportInfoText').text(infoText);
+            $('#exportInfo').show();
+        }
+        
+        function selectColumnsForType(type) {
+            if (availableColumns.length === 0) {
+                setTimeout(function() {
+                    selectColumnsForType(type);
+                }, 100);
+                return;
+            }
+            
+            $('.column-checkbox input[type="checkbox"]').prop('checked', false);
+            
+            if (type === 'entrance') {
+                $('#col_room_number').prop('checked', true);
+                $('#col_fio').prop('checked', true);
+            } else if (type === 'group') {
+                $('#col_fio').prop('checked', true);
+            } else if (type === 'adults' || type === 'minors') {
+                $('#col_fio').prop('checked', true);
+                $('#col_birth_date').prop('checked', true);
+            }
+            
+            updateSelectedColumns();
+        }
+        
+        function getSelectValue(selectId) {
+            // Сначала пробуем использовать кэшированную ссылку
+            let select = null;
+            if (selectId === 'buildingEntranceSelect' && window.cachedBuildingEntranceSelect) {
+                select = window.cachedBuildingEntranceSelect;
+                
+            } else if (selectId === 'groupSelect' && window.cachedGroupSelect) {
+                select = window.cachedGroupSelect;
+                
+            }
+            
+            // Если кэшированная ссылка валидна, используем её (даже если не в DOM)
+            if (select && select.id === selectId) {
+                // Сначала проверяем значение элемента напрямую
+                const elementValue = select.value;
+                if (elementValue) {
+                    
+                    return elementValue;
+                }
+                // Если значение пустое, проверяем combobox напрямую
+                if (select._constaCombobox) {
+                    const combobox = select._constaCombobox;
+                    if (combobox.value !== undefined && combobox.value !== null && combobox.value !== '') {
+                        
+                        return combobox.value;
+                    }
+                }
+                // Если значение пустое, возвращаем пустую строку
+                
+            } else if (select && select.id !== selectId) {
+                // Кэшированная ссылка не соответствует ID - сбрасываем
+                
+                select = null;
+            }
+            
+            // Если кэш не помог, ищем элемент разными способами
+            // Сначала пробуем найти скрытый select (consta-combobox) - он имеет приоритет
+            const hiddenSelect = document.querySelector(`.consta-combobox-original-select#${selectId}`);
+            if (hiddenSelect) {
+                
+                if (hiddenSelect.value) {
+                    return hiddenSelect.value;
+                }
+                // Пробуем получить значение из combobox
+                if (hiddenSelect._constaCombobox) {
+                    const combobox = hiddenSelect._constaCombobox;
+                    if (combobox.value !== undefined && combobox.value !== null && combobox.value !== '') {
+                        
+                        return combobox.value;
+                    }
+                }
+            }
+            
+            // Пробуем найти через getElementById
+            if (!select) {
+                select = document.getElementById(selectId);
+            }
+            if (select) {
+                
+                if (select.value) {
+                    return select.value;
+                }
+                // Пробуем получить значение из combobox напрямую
+                if (select._constaCombobox) {
+                    const combobox = select._constaCombobox;
+                    if (combobox.value !== undefined && combobox.value !== null && combobox.value !== '') {
+                        
+                        return combobox.value;
+                    }
+                }
+            }
+            
+            // Пробуем получить значение через jQuery (может не работать после инициализации combobox)
+            let value = $(`#${selectId}`).val();
+            
+            if (value) {
+                return value;
+            }
+            
+            
+            return '';
+        }
+        
+        function checkExportButton(groupValue) {
+            
+            const exportBtn = $('#exportBtn');
+            let canExport = false;
+            
+            if (!selectedExportType) {
+                canExport = false;
+                
+            } else if (selectedExportType === 'entrance') {
+                const buildingEntranceValue = getSelectValue('buildingEntranceSelect');
+                // Парсим значение формата "building|entrance"
+                let building = '';
+                let entrance = '';
+                if (buildingEntranceValue && buildingEntranceValue.includes('|')) {
+                    const parts = buildingEntranceValue.split('|');
+                    building = parts[0] || '';
+                    entrance = parts[1] || '';
+                }
+                canExport = building && entrance;
+                
+            } else if (selectedExportType === 'group') {
+                // Используем переданное значение, или window._lastGroupValue, или getSelectValue
+                let group = groupValue || window._lastGroupValue || getSelectValue('groupSelect');
+                
+                
+                canExport = !!group && (typeof group === 'string' ? group.trim() !== '' : true);
+                
+            } else if (selectedExportType === 'adults' || selectedExportType === 'minors') {
+                canExport = true;
+                
+            }
+            
+            
+            exportBtn.prop('disabled', !canExport);
+        }
+        
+        function exportData() {
+            const exportBtn = $('#exportBtn');
+            const exportStatus = $('#exportStatus');
+            
+            exportBtn.prop('disabled', true);
+            exportBtn.html('<span class="spinner-border spinner-border-sm" role="status"></span> Экспорт...');
+            exportStatus.html('');
+            
+            const exportDataObj = {
+                export_type: selectedExportType,
+                columns: selectedColumns
+            };
+            
+            if (selectedExportType === 'entrance') {
+                const buildingEntranceValue = getSelectValue('buildingEntranceSelect');
+                
+                // Парсим значение формата "building|entrance"
+                if (buildingEntranceValue && buildingEntranceValue.includes('|')) {
+                    const parts = buildingEntranceValue.split('|');
+                    exportDataObj.building = parts[0] || '';
+                    exportDataObj.entrance = parts[1] || '';
+                    
+                } else {
+                    
+                    exportDataObj.building = '';
+                    exportDataObj.entrance = '';
+                }
+            } else if (selectedExportType === 'group') {
+                // Используем window._lastGroupValue или getSelectValue
+                let groupName = window._lastGroupValue || getSelectValue('groupSelect');
+                
+                
+                // Если все еще пусто, пробуем получить напрямую из combobox
+                if (!groupName) {
+                    const groupSelect = document.getElementById('groupSelect');
+                    if (groupSelect && groupSelect._constaCombobox) {
+                        const combobox = groupSelect._constaCombobox;
+                        if (combobox.value !== undefined && combobox.value !== null) {
+                            groupName = combobox.value;
+                            
+                        }
+                    }
+                }
+                
+                exportDataObj.group_name = groupName;
+                
+            }
+            
+            fetch('/api/admin/export/export', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(exportDataObj)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        console.error('Export error:', err);
+                        return Promise.reject(err);
+                    });
+                }
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = 'export.xlsx';
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (filenameMatch && filenameMatch[1]) {
+                        filename = filenameMatch[1].replace(/['"]/g, '');
+                    }
+                }
+                return response.blob().then(blob => {
+                    if (!blob || blob.size === 0) {
+                        return Promise.reject({ error: 'Получен пустой файл' });
+                    }
+                    return { blob, filename };
+                });
+            })
+            .then(({ blob, filename }) => {
+                try {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    }, 100);
+                    
+                    exportStatus.html('<div class="alert alert-success"><i class="bi bi-check-circle"></i> Экспорт успешно завершен!</div>');
+                } catch (e) {
+                    console.error('Error creating download link:', e);
+                    exportStatus.html(`<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Ошибка при создании ссылки для скачивания: ${e.message}</div>`);
+                }
+            })
+            .catch(error => {
+                console.error('Export failed:', error);
+                let errorMsg = 'Произошла ошибка при экспорте';
+                if (error && error.error) {
+                    errorMsg = error.error;
+                } else if (error && typeof error === 'string') {
+                    errorMsg = error;
+                } else if (error && error.message) {
+                    errorMsg = error.message;
+                }
+                exportStatus.html(`<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ${errorMsg}</div>`);
+            })
+            .finally(() => {
+                exportBtn.prop('disabled', false);
+                exportBtn.html('<i class="bi bi-download"></i> Экспортировать в Excel');
+            });
+        }
+    </script>
+    
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+</body>
+</html>

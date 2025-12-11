@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Отправка сообщений - АСПиРС</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/css/consta-banner.css">
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        /* Стили для заголовка в верхнем меню */
+        .top-menu-content {
+            position: relative;
+        }
+        .top-menu-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff !important;
+            font-size: 1.25rem;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .top-menu-item.back-to-panel {
+            margin-right: auto;
+        }
+        .template-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #dee2e6;
+        }
+        .template-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .template-card .card-body {
+            padding: 1rem;
+        }
+        .template-card .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .template-card .card-text {
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+    </style>
+</head>
+<body class="p-4">
+    
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Отправка сообщений</h2>
+        </div>
+    </div>
+    
+    <div class="container" style="margin-top: 80px !important;">
+        
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-file-text"></i> Шаблоны сообщений</h5>
+                <button type="button" class="btn btn-sm btn-primary" id="createTemplateBtn" data-bs-toggle="modal" data-bs-target="#templateModal">
+                    <i class="bi bi-plus-circle"></i> Создать шаблон
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row g-2" id="templatesList">
+                    {% for template in templates %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card template-card" data-template-id="{{ template.id }}">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ template.name }}</h6>
+                                <p class="card-text small text-muted" style="max-height: 60px; overflow: hidden;">{{ template.message_text[:100] }}{% if template.message_text|length > 100 %}...{% endif %}</p>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-primary use-template-btn" data-template-id="{{ template.id }}">
+                                        <i class="bi bi-check-circle"></i> Использовать
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary edit-template-btn" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-template-text="{{ template.message_text }}">
+                                        <i class="bi bi-pencil"></i> Редактировать
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-template-btn" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}">
+                                        <i class="bi bi-trash"></i> Удалить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if not templates %}
+                    <div class="col-12">
+                        <p class="text-muted text-center">Нет созданных шаблонов. Создайте первый шаблон для удобной работы.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-envelope"></i> Написать сообщение</h5>
+            </div>
+            <div class="card-body">
+                <form id="messageForm">
+                    <div class="mb-3">
+                        <label for="templateSelect" class="form-label">Выберите шаблон (необязательно):</label>
+                        <select id="templateSelect" class="form-select mb-2" data-no-combobox="true">
+                            <option value="">-- Выберите шаблон --</option>
+                            {% for template in templates %}
+                            <option value="{{ template.id }}" data-text="{{ template.message_text }}">{{ template.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="messageText" class="form-label">Текст сообщения <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="messageText" rows="5" placeholder="Введите текст сообщения..." required></textarea>
+                        <small class="form-text text-muted">
+                            Используйте <code>{name}</code> для подстановки имени студента (например: "{name}, добрый день!")
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Кому отправить? <span class="text-danger">*</span></label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="recipientType" id="recipientPeriod" value="period" checked>
+                            <label class="form-check-label" for="recipientPeriod">
+                                Студентам, которые не получили белье за период
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="recipientType" id="recipientAll" value="all">
+                            <label class="form-check-label" for="recipientAll">
+                                Всем студентам с Telegram
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="recipientType" id="recipientCustom" value="custom">
+                            <label class="form-check-label" for="recipientCustom">
+                                Выбранные студенты (по списку)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="periodSelectContainer">
+                        <label for="periodSelect" class="form-label">Выберите период:</label>
+                        <select id="periodSelect" class="form-select" data-no-combobox="true">
+                            <option value="">Выберите период</option>
+                            {% for period in periods %}
+                                {% if period.start_date %}
+                                    {% set start_parts = period.start_date.split('-') %}
+                                    {% if start_parts|length >= 3 %}
+                                        {% set start_formatted = start_parts[2] + '.' + start_parts[1] + '.' + start_parts[0] %}
+                                    {% else %}
+                                        {% set start_formatted = period.start_date %}
+                                    {% endif %}
+                                {% else %}
+                                    {% set start_formatted = '—' %}
+                                {% endif %}
+                                {% if period.end_date %}
+                                    {% set end_parts = period.end_date.split('-') %}
+                                    {% if end_parts|length >= 3 %}
+                                        {% set end_formatted = end_parts[2] + '.' + end_parts[1] + '.' + end_parts[0] %}
+                                    {% else %}
+                                        {% set end_formatted = period.end_date %}
+                                    {% endif %}
+                                {% else %}
+                                    {% set end_formatted = '—' %}
+                                {% endif %}
+                                <option value="{{ period.id }}">{{ start_formatted }} - {{ end_formatted }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="customSelectContainer" style="display: none;">
+                        <label class="form-label">Выбранные студенты:</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="selectStudentsBtn">
+                                <i class="bi bi-people"></i> Выбрать студентов
+                            </button>
+                            <span class="text-muted" id="selectedStudentsSummary">Никто не выбран</span>
+                        </div>
+                    </div>
+                    
+                    <div id="statusInfo" class="mb-3"></div>
+                    
+                    <button type="submit" class="btn btn-primary" id="sendBtn">
+                        <i class="bi bi-send"></i> Отправить сообщения
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="templateModal" tabindex="-1" role="dialog" aria-labelledby="templateModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="templateModalLabel">Создать шаблон</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="templateForm">
+                        <input type="hidden" id="templateId" value="">
+                        <div class="mb-3">
+                            <label for="templateName" class="form-label">Название шаблона <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="templateName" placeholder="Например: Напоминание о белье" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="templateText" class="form-label">Текст шаблона <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="templateText" rows="5" placeholder="Введите текст шаблона..." required></textarea>
+                            <small class="form-text text-muted">
+                                Используйте <code>{name}</code> для подстановки имени студента
+                            </small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="saveTemplateBtn">
+                        <i class="bi bi-save"></i> Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+    <div class="modal fade" id="selectStudentsModal" tabindex="-1" role="dialog" aria-labelledby="selectStudentsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="selectStudentsModalLabel">Выбор студентов</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="studentsSearch" class="form-label">Поиск по ФИО, группе, комнате...</label>
+                        <input type="text" id="studentsSearch" class="form-control" placeholder="Введите часть имени, группы или комнаты">
+                    </div>
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">
+                                        <input type="checkbox" id="selectAllStudents">
+                                    </th>
+                                    <th>ФИО</th>
+                                    <th>Группа</th>
+                                    <th>Проживание</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsTableBody">
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                    <small class="text-muted">Будут показаны только студенты, у которых есть Telegram ID.</small>
+                </div>
+                <div class="modal-footer">
+                    <span class="me-auto text-muted" id="studentsSelectedCount">Выбрано: 0</span>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="saveSelectedStudentsBtn">
+                        <i class="bi bi-check-circle"></i> Сохранить выбор
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="/static/js/consta-banner.js"></script>
+    <script>
+        $(document).ready(function() {
+            let currentEditingTemplateId = null;
+            let selectedStudentIds = [];
+            
+            function updateRecipientControls() {
+                const recipientType = $('input[name="recipientType"]:checked').val();
+                if (recipientType === 'period') {
+                    $('#periodSelectContainer').show();
+                    $('#customSelectContainer').hide();
+                } else if (recipientType === 'custom') {
+                    $('#periodSelectContainer').hide();
+                    $('#customSelectContainer').show();
+                } else {
+
+                    $('#periodSelectContainer').hide();
+                    $('#customSelectContainer').hide();
+                }
+            }
+            
+
+            $('input[name="recipientType"]').on('change', function() {
+                updateRecipientControls();
+            });
+
+            updateRecipientControls();
+            
+
+            $('#templateSelect').on('change', function() {
+                const selectedOption = $(this).find('option:selected');
+                const templateText = selectedOption.data('text');
+                if (templateText) {
+                    $('#messageText').val(templateText);
+                }
+            });
+            
+
+            $(document).on('click', '.use-template-btn', function() {
+                const templateId = $(this).data('template-id');
+                const templateCard = $(this).closest('.template-card');
+
+
+                fetch(`/api/message_templates`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const template = data.templates.find(t => t.id == templateId);
+                            if (template) {
+                                $('#messageText').val(template.message_text);
+                                $('#templateSelect').val(templateId);
+
+                                $('html, body').animate({
+                                    scrollTop: $('#messageForm').offset().top - 100
+                                }, 500);
+                            }
+                        }
+                    });
+            });
+            
+
+            $('#createTemplateBtn').on('click', function() {
+                currentEditingTemplateId = null;
+                $('#templateModalLabel').text('Создать шаблон');
+                $('#templateForm')[0].reset();
+                $('#templateId').val('');
+            });
+            
+
+            $(document).on('click', '.edit-template-btn', function() {
+                currentEditingTemplateId = $(this).data('template-id');
+                const templateName = $(this).data('template-name');
+                const templateText = $(this).data('template-text');
+                
+                $('#templateModalLabel').text('Редактировать шаблон');
+                $('#templateId').val(currentEditingTemplateId);
+                $('#templateName').val(templateName);
+                $('#templateText').val(templateText);
+                
+                const modal = new bootstrap.Modal(document.getElementById('templateModal'));
+                modal.show();
+            });
+            
+
+            $('#saveTemplateBtn').on('click', async function() {
+                const templateId = $('#templateId').val();
+                const name = $('#templateName').val().trim();
+                const messageText = $('#templateText').val().trim();
+                
+                if (!name || !messageText) {
+                    if (typeof showBannerWarning !== 'undefined') {
+                        showBannerWarning('Заполните все поля', 'Внимание');
+                    } else {
+                        alert('Заполните все поля');
+                    }
+                    return;
+                }
+                
+                $('#saveTemplateBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Сохранение...');
+                
+                try {
+                    const url = templateId 
+                        ? `/api/message_templates/${templateId}`
+                        : '/api/message_templates';
+                    const method = templateId ? 'PUT' : 'POST';
+                    
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: name,
+                            message_text: messageText
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        if (typeof showBannerSuccess !== 'undefined') {
+                            showBannerSuccess(data.message, 'Успешно');
+                        } else {
+                            alert(data.message);
+                        }
+                        
+
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('templateModal'));
+                        modal.hide();
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        const errorMsg = data.error || 'Ошибка сохранения';
+                        if (typeof showBannerError !== 'undefined') {
+                            showBannerError(errorMsg, 'Ошибка');
+                        } else {
+                            alert('Ошибка: ' + errorMsg);
+                        }
+                    }
+                } catch (error) {
+                    
+                    const errorMsg = 'Ошибка при сохранении шаблона: ' + (error.message || 'Неизвестная ошибка');
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError(errorMsg, 'Ошибка');
+                    } else {
+                        alert(errorMsg);
+                    }
+                } finally {
+                    $('#saveTemplateBtn').prop('disabled', false).html('<i class="bi bi-save"></i> Сохранить');
+                }
+            });
+            
+
+            $(document).on('click', '.delete-template-btn', function() {
+                const templateId = $(this).data('template-id');
+                const templateName = $(this).data('template-name');
+                
+                const doDelete = () => {
+                    fetch(`/api/message_templates/${templateId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (typeof showBannerSuccess !== 'undefined') {
+                            showBannerSuccess(data.message, 'Успешно');
+                        } else {
+                            alert(data.message);
+                        }
+
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        const errorMsg = data.error || 'Ошибка удаления';
+                        if (typeof showBannerError !== 'undefined') {
+                            showBannerError(errorMsg, 'Ошибка');
+                        } else {
+                            alert('Ошибка: ' + errorMsg);
+                        }
+                    }
+                })
+                .catch(error => {
+                    
+                    const errorMsg = 'Ошибка при удалении шаблона: ' + (error.message || 'Неизвестная ошибка');
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError(errorMsg, 'Ошибка');
+                    } else {
+                        alert(errorMsg);
+                    }
+                });
+                };
+                
+                if (typeof showBannerConfirm !== 'undefined') {
+                    showBannerConfirm(
+                        `Удалить шаблон "${templateName}"?`,
+                        () => doDelete(),
+                        () => {}
+                    );
+                } else {
+                    if (confirm(`Вы уверены, что хотите удалить шаблон "${templateName}"?`)) {
+                        doDelete();
+                    }
+                }
+            });
+            
+
+            async function loadStudents(query = '') {
+                try {
+                    const params = new URLSearchParams();
+                    if (query) {
+                        params.append('q', query);
+                    }
+                    const response = await fetch('/api/employees?' + params.toString());
+                    const data = await response.json();
+                    
+                    const tbody = $('#studentsTableBody');
+                    tbody.empty();
+                    
+
+                    data.forEach(emp => {
+
+
+
+                        const id = emp.id;
+                        const fio = emp.fio || '';
+                        const group = emp.group_name || '';
+                        const building = (emp.building || '').trim();
+                        const entrance = (emp.entrance || '').trim();
+                        const room = (emp.room_number || '').trim();
+                        let residence = '—';
+                        if (building || entrance || room) {
+                            residence = `${building}${entrance ? '-' + entrance : ''}${room ? '-' + room : ''}`;
+                        }
+                        
+                        const isChecked = selectedStudentIds.includes(id);
+                        
+                        const row = $(`
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="student-select-checkbox" data-id="${id}" ${isChecked ? 'checked' : ''}>
+                                </td>
+                                <td>${fio}</td>
+                                <td>${group}</td>
+                                <td>${residence}</td>
+                            </tr>
+                        `);
+                        tbody.append(row);
+                    });
+                    
+                    updateSelectedCount();
+                } catch (error) {
+                    
+                }
+            }
+            
+            function updateSelectedCount() {
+                $('#studentsSelectedCount').text('Выбрано: ' + selectedStudentIds.length);
+                if (selectedStudentIds.length === 0) {
+                    $('#selectedStudentsSummary').text('Никто не выбран');
+                } else {
+                    $('#selectedStudentsSummary').text('Выбрано студентов: ' + selectedStudentIds.length);
+                }
+            }
+            
+
+            $('#selectStudentsBtn').on('click', function() {
+                const modalEl = document.getElementById('selectStudentsModal');
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+
+                loadStudents($('#studentsSearch').val().trim());
+            });
+            
+
+            let searchTimeout = null;
+            $('#studentsSearch').on('input', function() {
+                const query = $(this).val().trim();
+                if (searchTimeout) {
+                    clearTimeout(searchTimeout);
+                }
+                searchTimeout = setTimeout(() => {
+                    loadStudents(query);
+                }, 300);
+            });
+            
+
+            $(document).on('change', '.student-select-checkbox', function() {
+                const id = parseInt($(this).data('id'));
+                if ($(this).is(':checked')) {
+                    if (!selectedStudentIds.includes(id)) {
+                        selectedStudentIds.push(id);
+                    }
+                } else {
+                    selectedStudentIds = selectedStudentIds.filter(x => x !== id);
+                }
+                updateSelectedCount();
+            });
+            
+
+            $('#selectAllStudents').on('change', function() {
+                const checked = $(this).is(':checked');
+                $('.student-select-checkbox').each(function() {
+                    $(this).prop('checked', checked).trigger('change');
+                });
+            });
+            
+
+            $('#saveSelectedStudentsBtn').on('click', function() {
+                const modalEl = document.getElementById('selectStudentsModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) {
+                    modal.hide();
+                }
+                updateSelectedCount();
+            });
+            
+
+            $('#messageForm').on('submit', async function(e) {
+                e.preventDefault();
+                
+                const messageText = $('#messageText').val().trim();
+                const recipientType = $('input[name="recipientType"]:checked').val();
+                const periodId = $('#periodSelect').val();
+                
+                if (!messageText) {
+                    if (typeof showBannerWarning !== 'undefined') {
+                        showBannerWarning('Введите текст сообщения', 'Внимание');
+                    } else {
+                        alert('Введите текст сообщения');
+                    }
+                    return;
+                }
+                
+                if (recipientType === 'period' && !periodId) {
+                    if (typeof showBannerWarning !== 'undefined') {
+                        showBannerWarning('Выберите период', 'Внимание');
+                    } else {
+                        alert('Выберите период');
+                    }
+                    return;
+                }
+                
+                if (recipientType === 'custom' && selectedStudentIds.length === 0) {
+                    if (typeof showBannerWarning !== 'undefined') {
+                        showBannerWarning('Выберите хотя бы одного студента', 'Внимание');
+                    } else {
+                        alert('Выберите хотя бы одного студента');
+                    }
+                    return;
+                }
+                
+
+                let recipientText = '';
+                if (recipientType === 'period') {
+                    recipientText = 'студентам, которые не получили белье за выбранный период';
+                } else if (recipientType === 'all') {
+                    recipientText = 'всем студентам с Telegram';
+                } else {
+                    recipientText = `выбранным студентам (${selectedStudentIds.length})`;
+                }
+                
+                const doSend = async () => {
+                    $('#sendBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Отправка...');
+                    $('#statusInfo').html('');
+                    
+                    try {
+                        const response = await fetch('/api/bed_linen/send_custom_messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: messageText,
+                            recipient_type: recipientType,
+                            period_id: recipientType === 'period' ? periodId : null,
+                            student_ids: recipientType === 'custom' ? selectedStudentIds : []
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        let message = `Отправлено: ${data.sent_count}`;
+                        if (data.failed_count > 0) {
+                            message += `, Ошибок: ${data.failed_count}`;
+                        }
+                        if (data.total > 0) {
+                            message += ` из ${data.total} студентов`;
+                        }
+                        
+                        if (data.errors && data.errors.length > 0) {
+                            message += '\n\nОшибки:\n' + data.errors.join('\n');
+                        }
+                        
+                        if (typeof showBannerSuccess !== 'undefined') {
+                            showBannerSuccess(message, 'Успешно');
+                        } else {
+                            alert(message);
+                        }
+                        
+
+                        $('#messageText').val('');
+                    } else {
+                        const errorMsg = data.error || 'Ошибка отправки';
+                        if (typeof showBannerError !== 'undefined') {
+                            showBannerError(errorMsg, 'Ошибка');
+                        } else {
+                            alert('Ошибка: ' + errorMsg);
+                        }
+                    }
+                } catch (error) {
+                    
+                    const errorMsg = 'Ошибка при отправке сообщений: ' + (error.message || 'Неизвестная ошибка');
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError(errorMsg, 'Ошибка');
+                    } else {
+                        alert(errorMsg);
+                    }
+                } finally {
+                    $('#sendBtn').prop('disabled', false).html('<i class="bi bi-send"></i> Отправить сообщения');
+                }
+                };
+                
+
+                if (!document.getElementById('consta-banners-container')) {
+                    const container = document.createElement('div');
+                    container.id = 'consta-banners-container';
+                    container.className = 'consta-banners-container';
+                    document.body.appendChild(container);
+                }
+                
+                if (typeof showBannerConfirm !== 'undefined') {
+                    showBannerConfirm(
+                        `Отправить сообщение ${recipientText}?`,
+                        () => { doSend(); },
+                        () => {}
+                    );
+                } else {
+                    if (confirm(`Отправить сообщение ${recipientText}?`)) {
+                        doSend();
+                    }
+                }
+            });
+        });
+    </script>
+    
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+</body>
+</html>
+

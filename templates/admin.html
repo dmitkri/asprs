@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Панель администратора</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="/static/css/consta-datepicker.css">
+    <link rel="stylesheet" href="/static/css/consta-dragndrop.css">
+    <link rel="stylesheet" href="/static/css/consta-progressspin.css">
+    <link rel="stylesheet" href="/static/css/consta-group-filter.css">
+    <link rel="stylesheet" href="/static/css/consta-notifications.css">
+    <link rel="stylesheet" href="/static/css/consta-banner.css">
+    <link rel="stylesheet" href="/static/css/consta-button.css">
+    <link rel="stylesheet" href="/static/css/consta-collapse.css">
+    <link rel="stylesheet" href="/static/css/consta-combobox.css">
+    <link rel="stylesheet" href="/static/css/rating-tooltip.css">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <style>
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+        
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        .loading-content {
+            text-align: center;
+        }
+        
+        .loading-content img {
+            max-width: 1200px;
+            width: 95%;
+            height: auto;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.05);
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-content">
+            <img src="{{ url_for('static', filename='aspeers.png') }}" alt="АСПиРС">
+        </div>
+    </div>
+    
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo" style="width: 100%;">
+                <img src="/static/sirius.png" alt="АСПиРС" style="width: 100%; height: auto; max-width: 100%;" />
+            </div>
+            <button class="btn btn-sm btn-close-sidebar d-md-none" id="closeSidebar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div class="sidebar-menu">
+            {% if admin_role == 'razmeshenie' %}
+            <div class="alert alert-info m-3" style="font-size: 0.85rem;">
+                <i class="bi bi-info-circle"></i>
+                <strong>Режим просмотра:</strong> Доступен только просмотр студентов и отчетов по белью.
+            </div>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('edit') %}
+            <button id="admin_addBtn" class="sidebar-item">
+                <i class="bi bi-person-plus"></i>
+                <span>Добавить студента</span>
+            </button>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('import') %}
+            <button id="admin_importBtn" class="sidebar-item">
+                <i class="bi bi-file-earmark-excel"></i>
+                <span>Импорт Excel</span>
+            </button>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('view') %}
+            <a href="/admin/export" class="sidebar-item">
+                <i class="bi bi-download"></i>
+                <span>Экспорт</span>
+            </a>
+            {% endif %}
+            
+            
+            {% if admin_permissions and admin_permissions.get('manage_admins') %}
+            <a href="/admin/manage_admins" class="sidebar-item">
+                <i class="bi bi-people"></i>
+                <span>Управление администраторами</span>
+            </a>
+            <a href="/admin/manage_roles" class="sidebar-item">
+                <i class="bi bi-shield-check"></i>
+                <span>Управление ролями</span>
+            </a>
+            <a href="/admin/user_bot_settings" class="sidebar-item">
+                <i class="bi bi-robot"></i>
+                <span>Настройка User Bot</span>
+            </a>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('edit') %}
+            <a href="/admin/manage_groups" class="sidebar-item">
+                <i class="bi bi-collection"></i>
+                <span>Управление группами</span>
+            </a>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('manage_bed_linen') %}
+            <a href="/bed_linen/manage" class="sidebar-item">
+                <i class="bi bi-calendar-check"></i>
+                <span>Управление получением белья</span>
+            </a>
+            {% endif %}
+            {% if admin_permissions and admin_permissions.get('manage_send_messages') %}
+            <a href="/admin/send_messages" class="sidebar-item">
+                <i class="bi bi-chat-dots"></i>
+                <span>Отправка сообщений</span>
+            </a>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('view_reports') %}
+            <a href="/bed_linen/report" class="sidebar-item">
+                <i class="bi bi-file-earmark-text"></i>
+                <span>Отчеты по белью</span>
+            </a>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('scan_qr') %}
+            <a href="/bed_linen/scan" class="sidebar-item">
+                <i class="bi bi-camera"></i>
+                <span>Сканер QR-кодов</span>
+            </a>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('manage_tg_users') %}
+            <a href="/admin/tg_users" class="sidebar-item">
+                <i class="bi bi-telegram"></i>
+                <span>Telegram пользователи</span>
+            </a>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('manage_events') %}
+            <a href="/events/calendar" class="sidebar-item">
+                <i class="bi bi-calendar-event"></i>
+                <span>Календарь мероприятий</span>
+            </a>
+            <a href="/admin/event_organizers" class="sidebar-item">
+                <i class="bi bi-people"></i>
+                <span>Организаторы мероприятий</span>
+            </a>
+            <a href="/events/locations/manage" class="sidebar-item">
+                <i class="bi bi-geo-alt"></i>
+                <span>Места проведения мероприятий</span>
+            </a>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('manage_rooms') %}
+            <a href="/admin/manage_rooms" class="sidebar-item">
+                <i class="bi bi-door-open"></i>
+                <span>Управление комнатами</span>
+            </a>
+            <a href="/admin/duty_schedules" class="sidebar-item">
+                <i class="bi bi-calendar-event"></i>
+                <span>Графики дежурств</span>
+            </a>
+            <a href="/admin/manage_accommodation" class="sidebar-item">
+                <i class="bi bi-house-door"></i>
+                <span>Управление проживанием</span>
+            </a>
+            <a href="/admin/maintenance_requests" class="sidebar-item">
+                <i class="bi bi-tools"></i>
+                <span>Заявки о поломках</span>
+            </a>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('manage_minors') %}
+            <a href="/admin/minors" class="sidebar-item">
+                <i class="bi bi-people"></i>
+                <span>Несовершеннолетние студенты</span>
+            </a>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('manage_round_assignments') %}
+            <a href="/admin/round_assignments" class="sidebar-item">
+                <i class="bi bi-person-check"></i>
+                <span>Назначения на обход</span>
+            </a>
+            {% endif %}
+            
+            {% if admin_permissions and admin_permissions.get('manage_payments') %}
+            <a href="/admin/payments" class="sidebar-item">
+                <i class="bi bi-credit-card"></i>
+                <span>Оплата проживания</span>
+            </a>
+            {% endif %}
+            
+            <div class="sidebar-divider"></div>
+            
+            <a href="/admin/profile" class="sidebar-item">
+                <i class="bi bi-person-circle"></i>
+                <span>Личный кабинет</span>
+            </a>
+            
+            <div class="sidebar-divider"></div>
+            
+            <a href="/logout" class="sidebar-item sidebar-item-danger">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Выход</span>
+            </a>
+        </div>
+    </div>
+    
+    
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <button class="btn btn-outline-secondary d-md-none" id="toggleSidebar">
+                <i class="bi bi-list"></i>
+            </button>
+            <h1 class="page-title" id="greetingTitle">Админ панель</h1>
+        </div>
+        
+        <div class="content-wrapper">
+        
+        {% if admin_role == 'admin' or admin_role == 'super_admin' %}
+        
+        <div class="card mb-4 add-block-card">
+            <div class="card-body">
+                <h5>Добавить блок в карточку студента</h5>
+                <div class="row g-2">
+                    <div class="col-md-5">
+                        <input type="text" id="admin_colName" class="form-control" placeholder="Название блока">
+                    </div>
+                    <div class="col-md-4">
+                        <select id="admin_colType" class="form-select" data-no-combobox="true">
+                            <option value="text">Текст</option>
+                            <option value="date">Дата</option>
+                            <option value="number">Число</option>
+                            <option value="checkbox">Бокс с отметкой</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button id="admin_addColBtn" class="btn btn-outline-success w-100">Добавить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="admin_columnList" class="mt-4"></div>
+        {% endif %}
+
+        
+        <div class="row g-2 mb-3 align-items-center">
+            <div class="col-lg-8 col-md-7">
+                <input type="text" id="admin_search" class="form-control" placeholder="Поиск по всем полям...">
+            </div>
+            <div class="col-lg-4 col-md-5">
+                <select id="admin_statusFilter" class="form-select" aria-label="Фильтр по проживанию и здоровью" data-no-combobox="true">
+                    <option value="">Все студенты</option>
+                    <option value="ill">Только болеющие</option>
+                    <option value="residents">Проживающие (комната указана)</option>
+                    <option value="non_residents">Не проживающие / нет места проживания</option>
+                </select>
+            </div>
+        </div>
+
+        
+        <div class="table-responsive">
+            <table class="table table-hover table-striped" id="admin_table">
+                <thead class="table-dark">
+                    <tr id="admin_tableHead"></tr>
+                </thead>
+                <tbody id="admin_tableBody"></tbody>
+            </table>
+        </div>
+        {% if admin_role == 'razmeshenie' %}
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle"></i>
+            <strong>Режим просмотра:</strong> Вы можете только просматривать информацию о студентах. Редактирование недоступно.
+        </div>
+        {% endif %}
+        
+        
+        <footer class="page-footer">
+            <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+        </footer>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="admin_empModal" tabindex="-1" aria-labelledby="admin_empModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="admin_empModalLabel">Редактирование студента</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body" id="admin_modalBody" style="overflow-y: auto; max-height: calc(100vh - 250px);"></div>
+                <div class="modal-footer" id="admin_modalFooter"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    // Управление aria-hidden для модального окна admin_empModal
+    $(document).ready(function() {
+        const adminModal = $('#admin_empModal');
+        
+        // Удаляем aria-hidden при открытии модального окна
+        adminModal.on('show.bs.modal', function() {
+            this.removeAttribute('aria-hidden');
+        });
+        
+        // Устанавливаем aria-hidden при закрытии модального окна
+        adminModal.on('hidden.bs.modal', function() {
+            this.setAttribute('aria-hidden', 'true');
+        });
+        
+        // Убеждаемся, что aria-hidden удален после полного открытия
+        adminModal.on('shown.bs.modal', function() {
+            if (this.hasAttribute('aria-hidden')) {
+                this.removeAttribute('aria-hidden');
+            }
+        });
+    });
+    </script>
+    
+    <style>
+        #admin_empModal .flatpickr-calendar.consta-theme {
+            z-index: 10060 !important;
+            position: fixed !important;
+        }
+        
+        #admin_empModal.show .flatpickr-calendar.consta-theme {
+            z-index: 10070 !important;
+        }
+        
+        #admin_empModal .modal-body {
+            overflow-y: auto;
+            overflow-x: visible;
+            overflow: visible;
+        }
+        
+        #admin_empModal .modal-content {
+            overflow: visible;
+        }
+        
+        #admin_empModal .modal-dialog {
+            overflow: visible;
+        }
+        
+        #admin_empModal .consta-datepicker-wrapper {
+            position: relative;
+            z-index: auto;
+        }
+        
+        #admin_empModal .flatpickr-calendar {
+            margin-top: 4px;
+        }
+        
+        /* Стили для модального окна добавления заявления */
+        #vacationFormModal .flatpickr-calendar.consta-theme {
+            z-index: 10080 !important;
+            position: fixed !important;
+        }
+        
+        #vacationFormModal.show .flatpickr-calendar.consta-theme {
+            z-index: 10090 !important;
+        }
+        
+        #vacationFormModal .modal-body {
+            overflow-y: auto;
+            overflow-x: visible;
+            overflow: visible;
+        }
+        
+        #vacationFormModal .modal-content {
+            overflow: visible;
+        }
+        
+        #vacationFormModal .modal-dialog {
+            overflow: visible;
+        }
+        
+        #vacationFormModal .consta-datepicker-wrapper {
+            position: relative;
+            z-index: auto;
+        }
+        
+        #vacationFormModal .flatpickr-calendar {
+            margin-top: 4px;
+        }
+    </style>
+
+    
+    <div class="modal fade" id="admin_importModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Импорт из Excel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Файл .xlsx должен содержать колонки:</p>
+                    <ul class="mb-3">
+                        <li><strong>ФИО</strong> (обязательно) - полное имя студента</li>
+                        <li><strong>Телефон</strong> (необязательно) - номер телефона в формате 8---------- (11 цифр)</li>
+                        <li><strong>Дата рождения</strong> (необязательно) - дата рождения в формате ДД.ММ.ГГГГ</li>
+                    </ul>
+                    <p class="text-muted small mb-3">Если студент с таким ФИО уже существует, система спросит, обновлять ли информацию.</p>
+                    <div class="mb-3">
+                        <a href="/static/import_template.xlsx" class="btn btn-outline-primary btn-sm" download>
+                            <i class="bi bi-download"></i> Скачать шаблон
+                        </a>
+                    </div>
+                    <div class="consta-dragndrop-container">
+                        <input type="file" id="admin_excelFile" accept=".xlsx,.xls">
+                    </div>
+                    <small class="form-text text-muted mt-2 d-block">
+                        Поддерживаемые форматы: .xlsx, .xls
+                    </small>
+                    <div id="admin_importResult" class="mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="admin_uploadExcelBtn" class="btn btn-success" disabled>Импортировать</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal" id="changesHistoryModal" tabindex="-1" style="display: none;">
+        <div class="modal-dialog modal-lg" style="max-width: 900px !important; width: 900px !important; margin: 1.75rem auto !important; transform: none !important; transition: none !important;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">История изменений карточки студента</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="changesHistoryModalBody">
+                    <div class="text-center py-4">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        #changesHistoryModal .modal-dialog {
+            max-width: 900px !important;
+            width: 900px !important;
+            margin: 1.75rem auto !important;
+            transform: none !important;
+            transition: none !important;
+        }
+        #changesHistoryModal.modal {
+            transition: none !important;
+        }
+    </style>
+
+    
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-triangle"></i> Поменяйте пароль!
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <strong>Для безопасности мы рекомендуем сменить пароль, установленный Администратором</strong>
+                    </div>
+                    <p class="mb-3">Пожалуйста, измените пароль для обеспечения безопасности вашего аккаунта.</p>
+                    <form id="firstChangePasswordForm">
+                        <div class="mb-3">
+                            <label for="firstCurrentPassword" class="form-label">Текущий пароль</label>
+                            <input type="password" class="form-control" id="firstCurrentPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="firstNewPassword" class="form-label">Новый пароль</label>
+                            <input type="password" class="form-control" id="firstNewPassword" required minlength="6">
+                            <div class="form-text">Минимум 6 символов</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="firstConfirmPassword" class="form-label">Подтверждение пароля</label>
+                            <input type="password" class="form-control" id="firstConfirmPassword" required minlength="6">
+                        </div>
+                        <div id="firstPasswordChangeAlert" class="alert" style="display: none;"></div>
+                    </form>
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            Вы также можете изменить пароль позже в 
+                            <a href="/admin/profile" class="text-primary">личном кабинете</a>
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="/admin/profile" class="btn btn-outline-secondary me-auto">
+                        <i class="bi bi-person-circle"></i> Перейти в личный кабинет
+                    </a>
+                    <button type="button" class="btn btn-primary" id="firstChangePasswordBtn">
+                        <i class="bi bi-check-circle"></i> Изменить пароль
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <script>
+        window.adminRole = '{{ admin_role }}';
+        window.adminFio = '{{ admin_fio or "" }}';
+        window.changePassword = '{{ change_password|lower }}' === 'true';
+        window.passwordChanged = parseInt('{{ password_changed|default(0) }}') === 1;
+        
+        function getNameAndPatronymic(fio) {
+            if (!fio || fio.trim() === '') {
+                return 'Администратор';
+            }
+            
+            const parts = fio.trim().split(/\s+/);
+            if (parts.length >= 3) {
+                return `${parts[1]} ${parts[2]}`;
+            } else if (parts.length === 2) {
+                return fio;
+            } else {
+                return fio;
+            }
+        }
+        
+        function getGreeting() {
+            const hour = new Date().getHours();
+            let greeting = '';
+            
+            if (hour >= 7 && hour < 12) {
+                greeting = 'Доброе утро';
+            } else if (hour >= 12 && hour < 17) {
+                greeting = 'Добрый день';
+            } else if (hour >= 17 && hour < 22) {
+                greeting = 'Добрый вечер';
+            } else {
+                greeting = 'Доброй ночи';
+            }
+            
+            const fio = window.adminFio || '';
+            const nameAndPatronymic = getNameAndPatronymic(fio);
+            return `${greeting}, ${nameAndPatronymic}`;
+        }
+        
+        $(document).ready(function() {
+            setTimeout(function() {
+                $('#loadingScreen').addClass('hidden');
+                setTimeout(function() {
+                    $('#loadingScreen').remove();
+                }, 500);
+            }, 1000);
+            
+            const greeting = getGreeting();
+            $('#greetingTitle').text(greeting);
+            
+            if (window.changePassword && !window.passwordChanged) {
+                setTimeout(function() {
+                    const changePasswordModal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+                    changePasswordModal.show();
+                }, 1500);
+            }
+        });
+        
+
+        $(document).ready(function() {
+            $('#firstChangePasswordBtn').on('click', function() {
+                const currentPassword = $('#firstCurrentPassword').val();
+                const newPassword = $('#firstNewPassword').val();
+                const confirmPassword = $('#firstConfirmPassword').val();
+                
+
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError('Все поля обязательны для заполнения', 'Ошибка');
+                    } else {
+                        alert('Все поля обязательны для заполнения');
+                    }
+                    return;
+                }
+                
+                if (newPassword !== confirmPassword) {
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError('Новый пароль и подтверждение не совпадают', 'Ошибка');
+                    } else {
+                        alert('Новый пароль и подтверждение не совпадают');
+                    }
+                    return;
+                }
+                
+                if (newPassword.length < 6) {
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError('Пароль должен содержать минимум 6 символов', 'Ошибка');
+                    } else {
+                        alert('Пароль должен содержать минимум 6 символов');
+                    }
+                    return;
+                }
+                
+                $.ajax({
+                    url: '/api/admin/change_password',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        current_password: currentPassword,
+                        new_password: newPassword,
+                        confirm_password: confirmPassword
+                    }),
+                    success: function(response) {
+                        if (typeof showBannerSuccess !== 'undefined') {
+                            showBannerSuccess(response.message || 'Пароль успешно изменен', 'Успешно');
+                        } else {
+                            alert(response.message || 'Пароль успешно изменен');
+                        }
+                        
+                        setTimeout(function() {
+                            window.location.href = '/admin';
+                        }, 1500);
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON ? xhr.responseJSON.error : 'Произошла ошибка';
+                        if (typeof showBannerError !== 'undefined') {
+                            showBannerError(error, 'Ошибка');
+                        } else {
+                            alert(error);
+                        }
+                    }
+                });
+            });
+        });
+        
+        $(document).ready(function() {
+            const sidebar = $('#sidebar');
+            const overlay = $('#sidebarOverlay');
+            const toggleBtn = $('#toggleSidebar');
+            const closeBtn = $('#closeSidebar');
+            
+            function openSidebar() {
+                sidebar.addClass('show');
+                overlay.addClass('show');
+                $('body').css('overflow', 'hidden');
+            }
+            
+            function closeSidebar() {
+                sidebar.removeClass('show');
+                overlay.removeClass('show');
+                $('body').css('overflow', '');
+            }
+            
+            toggleBtn.on('click', openSidebar);
+            closeBtn.on('click', closeSidebar);
+            overlay.on('click', closeSidebar);
+            
+            $('.sidebar-item').on('click', function() {
+                if ($(window).width() < 768) {
+                    closeSidebar();
+                }
+            });
+        });
+    </script>
+    
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/columns.js"></script>
+    <script src="/static/js/groups.js"></script>
+    <script src="/static/js/validation.js"></script>
+    <script src="/static/js/employee.js"></script>
+    <script src="/static/js/health.js"></script>
+    <script src="/static/js/vacation.js"></script>
+    <script src="/static/js/history.js"></script>
+    <script src="/static/js/roommates.js"></script>
+    <script src="/static/js/import.js"></script>
+    <script src="/static/js/modals.js"></script>
+    <script src="/static/js/init.js"></script>
+    <script src="/static/js/main.js"></script>
+    <script src="/static/script.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+    <script src="/static/js/consta-datepicker.js"></script>
+    
+    <script src="/static/js/consta-dragndrop.js"></script>
+    
+    <script src="/static/js/consta-progressspin.js"></script>
+    
+    <script src="/static/js/consta-group-filter.js"></script>
+    
+    <script src="/static/js/consta-notifications.js"></script>
+    
+    <script src="/static/js/consta-banner.js"></script>
+    <script src="/static/js/consta-collapse.js"></script>
+    <script src="/static/js/consta-combobox.js"></script>
+    <script>
+        $(document).ready(function() {
+            if (typeof ConstaDatePicker !== 'undefined') {
+                ConstaDatePicker.init();
+            }
+            
+            if (typeof initConstaProgressSpins !== 'undefined') {
+                initConstaProgressSpins();
+            }
+            
+            if (typeof initConstaComboboxes !== 'undefined') {
+                initConstaComboboxes();
+            }
+            
+            if (!window.passwordChanged && typeof showBannerWarning !== 'undefined') {
+                showBannerWarning(
+                    'Для безопасности мы рекомендуем сменить пароль, установленный администратором.',
+                    'Рекомендация',
+                    [
+                        {
+                            text: 'Сменить пароль',
+                            onClick: function() {
+                                window.location.href = '/admin/profile';
+                            }
+                        }
+                    ],
+                    null
+                );
+            }
+        });
+    </script>
+</body>
+</html>

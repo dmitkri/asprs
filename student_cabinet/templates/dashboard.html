@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - Кабинет студента{% endblock %}
+
+{% block content %}
+{% if session.student_id %}
+<div class="student-container">
+<div class="student-card">
+    <div class="student-card-header">
+        <i class="bi bi-house-door"></i>
+        <h2>Добро пожаловать, {{ student.fio or session.student_fio }}!</h2>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-card-icon primary">
+                <i class="bi bi-person-circle"></i>
+            </div>
+            <div class="stat-card-value">{{ student.group_name or 'Не указано' }}</div>
+            <div class="stat-card-label">Группа</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-card-icon success">
+                <i class="bi bi-credit-card"></i>
+            </div>
+            <div class="stat-card-value">{{ recent_payments|length if recent_payments else 0 }}</div>
+            <div class="stat-card-label">Последние оплаты</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-card-icon warning">
+                <i class="bi bi-tools"></i>
+            </div>
+            <div class="stat-card-value">{{ recent_maintenance|length if recent_maintenance else 0 }}</div>
+            <div class="stat-card-label">Активные заявки</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-card-icon info">
+                <i class="bi bi-door-open"></i>
+            </div>
+            <div class="stat-card-value">
+                {% if student.building and student.entrance and student.room_number %}
+                    {{ student.building }}-{{ student.entrance }}-{{ student.room_number }}
+                {% else %}
+                    Не указано
+                {% endif %}
+            </div>
+            <div class="stat-card-label">Комната</div>
+        </div>
+    </div>
+</div>
+
+<div class="student-card">
+    <div class="student-card-header">
+        <i class="bi bi-credit-card"></i>
+        <h3>Последние оплаты</h3>
+    </div>
+    {% if recent_payments %}
+        <table class="student-table">
+            <thead>
+                <tr>
+                    <th>Месяц</th>
+                    <th>Сумма</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set status_classes = {
+                    'accepted': 'badge-success',
+                    'pending': 'badge-warning',
+                    'assigned': 'badge-info',
+                    'rejected': 'badge-danger'
+                } %}
+                {% set status_labels = {
+                    'accepted': 'Одобрено',
+                    'pending': 'На проверке',
+                    'assigned': 'Назначено',
+                    'rejected': 'Отклонено'
+                } %}
+                {% for payment in recent_payments %}
+                <tr>
+                    <td>{{ payment.payment_month or 'Не указано' }}</td>
+                    <td><strong>{{ payment.amount }} ₽</strong></td>
+                    <td>
+                        {% set status = payment.status or 'pending' %}
+                        <span class="badge {{ status_classes.get(status, 'badge-secondary') }}">
+                            {{ status_labels.get(status, status) }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="{{ url_for('payments') }}" class="btn-student" style="margin-top: 1.5rem;">
+            <i class="bi bi-arrow-right"></i> Все оплаты
+        </a>
+    {% else %}
+        <p style="color: #6b7280; text-align: center; padding: 2rem;">Нет оплат</p>
+        <a href="{{ url_for('payments') }}" class="btn-student" style="margin-top: 1rem;">
+            <i class="bi bi-plus-circle"></i> Оплатить проживание
+        </a>
+    {% endif %}
+</div>
+
+<div class="student-card">
+    <div class="student-card-header">
+        <i class="bi bi-tools"></i>
+        <h3>Последние заявки</h3>
+    </div>
+    {% if recent_maintenance %}
+        <table class="student-table">
+            <thead>
+                <tr>
+                    <th>Номер</th>
+                    <th>Описание</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in recent_maintenance %}
+                <tr>
+                    <td><strong>#{{ req.request_number }}</strong></td>
+                    <td>{{ req.message[:50] }}{% if req.message|length > 50 %}...{% endif %}</td>
+                    <td>
+                        <span class="badge {% if req.status == 'closed' %}badge-success{% elif req.status == 'in_progress' %}badge-info{% else %}badge-warning{% endif %}">
+                            {% if req.status == 'closed' %}Закрыто
+                            {% elif req.status == 'in_progress' %}В работе
+                            {% else %}Новая{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="{{ url_for('maintenance') }}" class="btn-student" style="margin-top: 1.5rem;">
+            <i class="bi bi-arrow-right"></i> Все заявки
+        </a>
+    {% else %}
+        <p style="color: #6b7280; text-align: center; padding: 2rem;">Нет заявок</p>
+        <a href="{{ url_for('maintenance') }}" class="btn-student" style="margin-top: 1rem;">
+            <i class="bi bi-plus-circle"></i> Подать заявку
+        </a>
+    {% endif %}
+</div>
+
+<div class="student-card">
+    <div class="student-card-header">
+        <i class="bi bi-lightning-charge"></i>
+        <h3>Быстрые действия</h3>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <a href="{{ url_for('payments') }}" class="btn-student-secondary">
+            <i class="bi bi-credit-card"></i>
+            Оплатить проживание
+        </a>
+        <a href="{{ url_for('maintenance') }}" class="btn-student-secondary">
+            <i class="bi bi-tools"></i>
+            Подать заявку
+        </a>
+        <a href="{{ url_for('events') }}" class="btn-student-secondary">
+            <i class="bi bi-calendar-event"></i>
+            События
+        </a>
+        <a href="{{ url_for('roommates') }}" class="btn-student-secondary">
+            <i class="bi bi-people"></i>
+            Соседи по комнате
+        </a>
+    </div>
+</div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,105 @@
+
+
+.consta-progressspin {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+}
+
+.consta-progressspin svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    display: block;
+}
+
+.consta-progressspin-circle-bg {
+    fill: none;
+    stroke: #e9ecef;
+    stroke-width: 3;
+}
+
+.consta-progressspin-circle-progress {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.3s ease;
+}
+
+
+.consta-progressspin--success .consta-progressspin-circle-progress {
+    stroke: #28a745;
+}
+
+.consta-progressspin--warning .consta-progressspin-circle-progress {
+    stroke: #ffc107;
+}
+
+.consta-progressspin--danger .consta-progressspin-circle-progress {
+    stroke: #dc3545;
+}
+
+.consta-progressspin-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    color: #333;
+}
+
+
+.consta-progressspin--s {
+    width: 32px;
+    height: 32px;
+}
+
+.consta-progressspin--s .consta-progressspin-text {
+    font-size: 9px;
+}
+
+.consta-progressspin--m {
+    width: 40px;
+    height: 40px;
+}
+
+.consta-progressspin--l {
+    width: 48px;
+    height: 48px;
+}
+
+.consta-progressspin--l .consta-progressspin-text {
+    font-size: 13px;
+}
+
+
+.consta-progressspin-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.consta-progressspin-label {
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.consta-progressspin-label--success {
+    color: #28a745;
+}
+
+.consta-progressspin-label--warning {
+    color: #ffc107;
+}
+
+.consta-progressspin-label--danger {
+    color: #dc3545;
+}
+

@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Календарь мероприятий</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/consta-button.css">
+    <link rel="stylesheet" href="/static/css/consta-banner.css">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/css/consta-datepicker.css">
+    <link rel="stylesheet" href="/static/css/consta-combobox.css">
+    <link rel="stylesheet" href="/static/style.css?v=4">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/consta-combobox.js"></script>
+    <style>
+        .calendar-day {
+            min-height: 100px;
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            position: relative;
+        }
+        .calendar-day.today {
+            background-color: #e7f3ff;
+        }
+        .calendar-day.other-month {
+            background-color: #f8f9fa;
+            color: #6c757d;
+        }
+        #addEventModal .modal-dialog {
+            max-width: 1140px !important;
+            width: 1140px !important;
+            margin: 1.75rem auto !important;
+            transition: none !important;
+            transform: none !important;
+        }
+        #addEventModal.modal {
+            transition: none !important;
+        }
+        #addEventModal.modal.show .modal-dialog {
+            transform: none !important;
+        }
+        #addEventModal.modal.hiding .modal-dialog {
+            transform: none !important;
+        }
+        #viewEventModal .modal-dialog {
+            max-width: 800px !important;
+            width: 800px !important;
+            margin: 1.75rem auto !important;
+            transition: none !important;
+            transform: none !important;
+        }
+        #viewEventModal.modal {
+            transition: none !important;
+        }
+        #viewEventModal.modal.show .modal-dialog {
+            transform: none !important;
+        }
+        #viewEventModal.modal.hiding .modal-dialog {
+            transform: none !important;
+        }
+        #addEventStatus .alert {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 0;
+        }
+        #addEventStatus .alert i {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        #addEventStatus .alert-success {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        #addEventStatus .alert-success i {
+            color: #28a745;
+        }
+        #addEventStatus .alert-danger {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        #addEventStatus .alert-danger i {
+            color: #dc3545;
+        }
+        #addEventStatus .alert-warning {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        #addEventStatus .alert-warning i {
+            color: #ffc107;
+        }
+        .event-item {
+            padding: 4px 8px;
+            margin: 2px 0;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 500;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .event-item.event-past {
+            background-color: #e9ecef;
+            color: #495057;
+            border-color: #ced4da;
+        }
+        .event-item.event-past:hover {
+            background-color: #dee2e6;
+            border-color: #adb5bd;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .event-item.event-upcoming {
+            background-color: #6f42c1;
+            color: #ffffff !important;
+            border-color: #5a32a3;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        .event-item.event-upcoming:hover {
+            background-color: #5a32a3;
+            border-color: #4c2a8a;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(111, 66, 193, 0.4);
+        }
+        .event-item.event-upcoming small {
+            color: #ffffff !important;
+            font-weight: 700;
+        }
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-weight: bold;
+            background-color: #f8f9fa;
+            padding: 10px 0;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0;
+        }
+        /* Стили для заголовка в верхнем меню */
+        .top-menu-content {
+            position: relative;
+        }
+        .top-menu-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff !important;
+            font-size: 1.25rem;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .top-menu-item.back-to-panel {
+            margin-right: auto;
+        }
+        /* Стили для заголовка месяца в календаре */
+        #currentMonthYear {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--color-text-primary, #212529);
+            flex: 1;
+            text-align: left;
+            user-select: none;
+            pointer-events: none;
+            cursor: default;
+            position: relative !important;
+            z-index: 1 !important;
+        }
+        /* Защита от преобразования в input/select */
+        #currentMonthYear:not(h3),
+        select#currentMonthYear,
+        input#currentMonthYear {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        #currentMonthYear + .consta-combobox,
+        #currentMonthYear + select,
+        #currentMonthYear + input,
+        .consta-combobox:has(#currentMonthYear),
+        .consta-datepicker-wrapper:has(#currentMonthYear) {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        /* Скрываем все дочерние элементы, которые не являются текстом */
+        #currentMonthYear select,
+        #currentMonthYear input,
+        #currentMonthYear .consta-combobox,
+        #currentMonthYear .consta-datepicker-wrapper,
+        #currentMonthYear > *:not(:first-child) {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        /* Исправление для контейнера с месяцем и кнопками */
+        .card-body > .d-flex {
+            align-items: center !important;
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Календарь мероприятий</h2>
+            {% if admin_permissions and admin_permissions.get('manage_events') %}
+            <button class="top-menu-item" id="addEventBtn" data-bs-toggle="modal" data-bs-target="#addEventModal">
+                <i class="bi bi-plus-circle"></i>
+                <span>Добавить мероприятие</span>
+            </button>
+            <a href="/events/attendance/rating" class="top-menu-item">
+                <i class="bi bi-trophy"></i>
+                <span>Рейтинг посещаемости</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="container mt-4" style="margin-top: 80px !important;">
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0" id="currentMonthYear" data-no-consta-datepicker="true" data-no-combobox="true"></h3>
+                    <div>
+                        <button class="btn btn-outline-secondary" id="prevMonthBtn">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" id="nextMonthBtn">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="calendarContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal" id="addEventModal" tabindex="-1" data-bs-backdrop="static" style="display: none;">
+        <div class="modal-dialog modal-xl" style="max-width: 1140px !important; width: 1140px !important; margin: 1.75rem auto !important; transform: none !important; transition: none !important;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить мероприятие</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addEventForm">
+                        <div class="mb-3">
+                            <label for="eventAdminFio" class="form-label">ФИО воспитателя</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="text" class="form-control" id="eventAdminFio" readonly>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="addCoauthorBtn" title="Указать соавтора">
+                                    <i class="bi bi-plus-circle"></i> Указать соавтора
+                                </button>
+                            </div>
+                            <div id="coauthorSection" class="mt-2" style="display: none;">
+                                <label class="form-label small">Соавтор</label>
+                                <select class="form-select" id="eventCoauthor">
+                                    <option value="">Выберите соавтора...</option>
+                                </select>
+                                <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="removeCoauthorBtn">
+                                    <i class="bi bi-x"></i> Убрать соавтора
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="eventLocation" class="form-label">Место проведения <span class="text-danger">*</span></label>
+                            <select class="form-select" id="eventLocation" required>
+                                <option value="">Выберите место...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="eventDescription" class="form-label">Мероприятие <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="eventDescription" rows="3" required placeholder="Опишите мероприятие"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="eventDate" class="form-label">Дата <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="eventDate" data-no-consta-datepicker="true" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="eventTime" class="form-label">Время <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="eventTime" data-no-consta-datepicker="true" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Организаторы:</strong> Управление организаторами осуществляется на отдельной странице 
+                                <a href="/admin/event_organizers" target="_blank">"Организаторы мероприятий"</a>. 
+                                Глобальные организаторы могут сканировать QR-коды на всех мероприятиях.
+                            </div>
+                        </div>
+                        <div id="addEventStatus" class="mt-3"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="submitEventBtn">
+                        <i class="bi bi-check-circle"></i> Добавить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal" id="viewEventModal" tabindex="-1" style="display: none;">
+        <div class="modal-dialog modal-lg" style="max-width: 800px !important; width: 800px !important; margin: 1.75rem auto !important; transform: none !important; transition: none !important;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Мероприятие</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="viewEventBody" style="word-wrap: break-word; overflow-wrap: break-word; white-space: normal; overflow: visible;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-info" id="viewAttendanceBtn" style="display: none;">
+                        <i class="bi bi-people"></i> Посещаемость
+                    </button>
+                    <button type="button" class="btn btn-danger" id="deleteEventBtn" style="display: none;">
+                        <i class="bi bi-trash"></i> Удалить
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDate = new Date();
+        let events = [];
+        let currentEventId = null;
+        
+
+        /*
+        function protectMonthYearHeader() {
+            let monthYearElement = document.getElementById('currentMonthYear');
+            
+
+            if (!monthYearElement) {
+                monthYearElement = document.querySelector('[id="currentMonthYear"]');
+            }
+            
+            if (!monthYearElement) {
+
+                const container = document.querySelector('.d-flex.justify-content-between.align-items-center.mb-3');
+                if (container) {
+                    const year = currentDate.getFullYear();
+                    const month = currentDate.getMonth();
+                    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                                      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+                    
+                    const newElement = document.createElement('h3');
+                    newElement.id = 'currentMonthYear';
+                    newElement.className = 'mb-0';
+                    newElement.setAttribute('data-no-consta-datepicker', 'true');
+                    newElement.setAttribute('data-no-combobox', 'true');
+                    newElement.style.userSelect = 'none';
+                    newElement.style.pointerEvents = 'none';
+                    newElement.textContent = `${monthNames[month]} ${year}`;
+                    container.insertBefore(newElement, container.firstChild);
+                    return;
+                }
+                return;
+            }
+            
+
+            if (monthYearElement.tagName !== 'H3') {
+                const parent = monthYearElement.parentNode;
+                const text = monthYearElement.textContent || monthYearElement.innerText || monthYearElement.value || '';
+                
+
+                if (!text) {
+                    const year = currentDate.getFullYear();
+                    const month = currentDate.getMonth();
+                    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                                      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+                    monthYearElement.textContent = `${monthNames[month]} ${year}`;
+                }
+                
+                monthYearElement.remove();
+                
+                const newElement = document.createElement('h3');
+                newElement.id = 'currentMonthYear';
+                newElement.className = 'mb-0';
+                newElement.setAttribute('data-no-consta-datepicker', 'true');
+                newElement.setAttribute('data-no-combobox', 'true');
+                newElement.style.userSelect = 'none';
+                newElement.style.pointerEvents = 'none';
+                newElement.style.position = 'relative';
+                newElement.style.zIndex = '1';
+                newElement.textContent = text || monthYearElement.textContent;
+                
+                if (parent) {
+                    parent.insertBefore(newElement, parent.firstChild);
+                }
+                monthYearElement = newElement;
+            }
+            
+
+            monthYearElement.style.userSelect = 'none';
+            monthYearElement.style.pointerEvents = 'none';
+            monthYearElement.style.position = 'relative';
+            monthYearElement.style.zIndex = '1';
+            monthYearElement.setAttribute('data-no-consta-datepicker', 'true');
+            monthYearElement.setAttribute('data-no-combobox', 'true');
+            
+
+            if (monthYearElement.parentNode) {
+                const parent = monthYearElement.parentNode;
+                const siblings = Array.from(parent.children);
+                siblings.forEach(sibling => {
+                    if (sibling !== monthYearElement) {
+
+                        if (sibling.id === 'currentMonthYear' || 
+                            sibling.classList.contains('consta-combobox') || 
+                            sibling.classList.contains('consta-datepicker-wrapper') ||
+                            (sibling.tagName === 'SELECT' && sibling.id === 'currentMonthYear') ||
+                            (sibling.tagName === 'INPUT' && sibling.id === 'currentMonthYear')) {
+                            sibling.remove();
+                        }
+                    }
+                });
+            }
+            
+
+            const allWrappers = document.querySelectorAll('.consta-combobox, .consta-datepicker-wrapper, select#currentMonthYear, input#currentMonthYear');
+            allWrappers.forEach(wrapper => {
+                if (wrapper.id === 'currentMonthYear' || wrapper.contains(monthYearElement)) {
+                    if (wrapper.contains(monthYearElement)) {
+                        const parent = wrapper.parentNode;
+                        if (parent) {
+                            parent.insertBefore(monthYearElement, wrapper);
+                        }
+                    }
+                    wrapper.remove();
+                }
+            });
+            
+
+            const children = Array.from(monthYearElement.childNodes);
+            children.forEach(child => {
+                if (child.nodeType !== Node.TEXT_NODE) {
+                    monthYearElement.removeChild(child);
+                }
+            });
+        }
+        */
+        
+
+        function initModalComboboxes() {
+            const modalElement = document.getElementById('addEventModal');
+            if (!modalElement) return;
+            
+
+
+            const allSelects = modalElement.querySelectorAll('select:not(.consta-combobox-original-select)');
+            
+            if (allSelects.length === 0) {
+                return;
+            }
+            
+
+            const ConstaComboboxClass = window.ConstaCombobox;
+            
+            if (typeof ConstaComboboxClass !== 'undefined' && ConstaComboboxClass) {
+                allSelects.forEach(select => {
+
+                    if (select.id === 'currentMonthYear') {
+                        return;
+                    }
+                    
+
+                    if (select.hasAttribute('data-no-combobox')) {
+                        return;
+                    }
+                    
+
+                    if (select.classList.contains('consta-combobox-initialized')) {
+                        
+                        return;
+                    }
+                    
+
+                    if (select.closest('.consta-combobox')) {
+                        
+                        return;
+                    }
+                    
+
+                    if (!select.id) {
+                        
+                        return;
+                    }
+                    
+                    
+                    try {
+                        const combobox = new ConstaComboboxClass(select, {
+                            searchable: true,
+                            placeholder: select.options[0] && select.options[0].value === '' ? select.options[0].text : 'Выберите значение',
+                            size: 'm'
+                        });
+                        select.classList.add('consta-combobox-initialized');
+                        select._constaCombobox = combobox;
+                    } catch (e) {
+                    }
+                });
+            }
+        }
+
+
+        async function loadUserData() {
+            try {
+                const response = await fetch('/api/user');
+                const data = await response.json();
+                if (data.admin_fio) {
+                    $('#eventAdminFio').val(data.admin_fio);
+                }
+            } catch (error) {
+            }
+        }
+
+
+        async function loadLocations() {
+            try {
+                const response = await fetch('/api/events/locations');
+                const data = await response.json();
+                if (data.success && data.locations) {
+                    const select = $('#eventLocation');
+                    select.empty();
+                    select.append('<option value="">Выберите место...</option>');
+                    data.locations.forEach(location => {
+                        const option = $('<option></option>');
+                        option.attr('value', location);
+                        option.text(location);
+                        select.append(option);
+                    });
+                    
+
+                    setTimeout(initModalComboboxes, 200);
+                }
+            } catch (error) {
+            }
+        }
+
+
+        async function loadTgUsers(search = '') {
+            try {
+                const url = search ? `/api/events/tg_users?search=${encodeURIComponent(search)}` : '/api/events/tg_users';
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.success && data.users) {
+                    return data.users;
+                }
+                return [];
+            } catch (error) {
+                return [];
+            }
+        }
+
+
+        async function loadVospitatels() {
+            try {
+                const response = await fetch('/api/events/vospitatels');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.vospitatels && Array.isArray(data.vospitatels)) {
+
+                    let selectElement = document.getElementById('eventCoauthor');
+                    
+
+                    if (!selectElement) {
+                        const modalElement = document.getElementById('addEventModal');
+                        if (modalElement) {
+                            const coauthorSection = modalElement.querySelector('#coauthorSection');
+                            if (coauthorSection) {
+                                selectElement = coauthorSection.querySelector('select:not(.consta-combobox-original-select)');
+                                if (!selectElement) {
+                                    selectElement = coauthorSection.querySelector('select');
+                                }
+                                if (selectElement && !selectElement.id) {
+                                    selectElement.id = 'eventCoauthor';
+                                }
+                            }
+                        }
+                    }
+                    
+
+                    if (!selectElement) {
+                        const coauthorSection = document.getElementById('coauthorSection');
+                        if (coauthorSection) {
+                            selectElement = document.createElement('select');
+                            selectElement.id = 'eventCoauthor';
+                            selectElement.className = 'form-select';
+                            
+                            const label = coauthorSection.querySelector('label');
+                            if (label && label.nextElementSibling) {
+                                coauthorSection.insertBefore(selectElement, label.nextElementSibling);
+                            } else {
+                                coauthorSection.appendChild(selectElement);
+                            }
+                        } else {
+                            return;
+                        }
+                    }
+                    
+
+                    const $select = $(selectElement);
+                    
+
+                    const $coauthorSection = $('#coauthorSection');
+                    if ($coauthorSection.length > 0) {
+                        $coauthorSection.find('.consta-combobox').each(function() {
+                            const wrapper = $(this);
+                            const originalSelect = wrapper.find('select.consta-combobox-original-select');
+                            if (originalSelect.length > 0 && wrapper.parent().length > 0) {
+                                wrapper.before(originalSelect);
+                                originalSelect.removeClass('consta-combobox-initialized');
+                                originalSelect[0]._constaCombobox = null;
+                                if (originalSelect.attr('id') === 'eventCoauthor') {
+                                    $select = originalSelect;
+                                }
+                            }
+                            wrapper.remove();
+                        });
+                    }
+                    
+
+                    $select.empty();
+                    $select.append($('<option></option>').attr('value', '').text('Выберите соавтора...'));
+                    
+                    
+                    if (data.vospitatels.length === 0) {
+                        $select.append($('<option></option>').attr('value', '').attr('disabled', true).text('Воспитатели не найдены'));
+                    } else {
+                        data.vospitatels.forEach(vosp => {
+                            $select.append($('<option></option>').attr('value', vosp.id).text(vosp.fio || 'Без имени'));
+                        });
+                    }
+                    
+
+
+                    if (selectElement) {
+                        selectElement._constaCombobox = null;
+                        $(selectElement).removeClass('consta-combobox-initialized');
+                        
+                        setTimeout(() => {
+                            if (!$(selectElement).closest('.consta-combobox').length) {
+                                initModalComboboxes();
+                            }
+                        }, 300);
+                    }
+                } else {
+                }
+            } catch (error) {
+                const select = $('#eventCoauthor');
+                select.empty();
+                select.append('<option value="" disabled>Ошибка загрузки списка</option>');
+            }
+        }
+
+
+        async function loadEvents() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            
+            const startDate = firstDay.toISOString().split('T')[0];
+            const endDate = lastDay.toISOString().split('T')[0];
+            
+            try {
+                const response = await fetch(`/api/events?start_date=${startDate}&end_date=${endDate}`);
+                const data = await response.json();
+                if (data.success) {
+                    events = data.events || [];
+                    renderCalendar();
+                }
+            } catch (error) {
+            }
+        }
+
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                              'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            
+
+            $('#currentMonthYear').text(`${monthNames[month]} ${year}`);
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            const adjustedStartDay = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1;
+            
+            const today = new Date();
+            const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+            
+            let html = '<div class="calendar-header">';
+            const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+            dayNames.forEach(day => {
+                html += `<div>${day}</div>`;
+            });
+            html += '</div>';
+            
+            html += '<div class="calendar-grid">';
+            
+            const prevMonthLastDay = new Date(year, month, 0).getDate();
+            for (let i = adjustedStartDay - 1; i >= 0; i--) {
+                const day = prevMonthLastDay - i;
+                html += `<div class="calendar-day other-month">${day}</div>`;
+            }
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayEvents = events.filter(e => e.event_date === dateStr);
+                const isToday = isCurrentMonth && day === today.getDate();
+                
+                html += `<div class="calendar-day ${isToday ? 'today' : ''}">`;
+                html += `<div class="fw-bold mb-1">${day}</div>`;
+                
+                dayEvents.forEach(event => {
+                    // Определяем, прошло ли мероприятие
+                    let isPast = false;
+                    try {
+                        // Парсим дату (формат: YYYY-MM-DD)
+                        const eventDateParts = event.event_date.split('-');
+                        const eventYear = parseInt(eventDateParts[0]);
+                        const eventMonth = parseInt(eventDateParts[1]) - 1; // месяцы в JS начинаются с 0
+                        const eventDay = parseInt(eventDateParts[2]);
+                        
+                        // Парсим время (формат: HH:MM или HH:MM:SS)
+                        const eventTimeParts = (event.event_time || '00:00').split(':');
+                        const eventHour = parseInt(eventTimeParts[0]) || 0;
+                        const eventMinute = parseInt(eventTimeParts[1]) || 0;
+                        
+                        // Создаем объект даты для мероприятия
+                        const eventDateTime = new Date(eventYear, eventMonth, eventDay, eventHour, eventMinute, 0, 0);
+                        
+                        // Сравниваем с текущим временем
+                        const now = new Date();
+                        isPast = eventDateTime < now;
+                    } catch (e) {
+                        // В случае ошибки парсинга считаем мероприятие запланированным
+                        isPast = false;
+                    }
+                    
+                    const eventClass = isPast ? 'event-past' : 'event-upcoming';
+                    
+                    html += `<div class="event-item ${eventClass}" onclick="viewEvent(${event.id})" title="${escapeHtml(event.description)}" style="color: ${isPast ? '#495057' : '#ffffff'} !important;">`;
+                    html += `<small style="color: ${isPast ? '#495057' : '#ffffff'} !important; font-weight: ${isPast ? '500' : '700'}; text-shadow: none;">${event.event_time} - ${escapeHtml(event.description.substring(0, 20))}${event.description.length > 20 ? '...' : ''}</small>`;
+                    html += `</div>`;
+                });
+                
+                html += `</div>`;
+            }
+            
+            const totalCells = adjustedStartDay + daysInMonth;
+            const remainingCells = 42 - totalCells;
+            for (let day = 1; day <= remainingCells && day <= 14; day++) {
+                html += `<div class="calendar-day other-month">${day}</div>`;
+            }
+            
+            html += '</div>';
+            
+            $('#calendarContainer').html(html);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }
+
+
+        async function viewEvent(eventId) {
+            const event = events.find(e => e.id === eventId);
+            if (!event) return;
+            
+            const body = $('#viewEventBody');
+            const location = event.location || '';
+            
+            let vospitatelText = escapeHtml(event.admin_fio || '');
+            if (event.coauthor_fio) {
+                vospitatelText += `, ${escapeHtml(event.coauthor_fio)}`;
+            }
+            
+            body.html(`
+                <p><strong>Воспитатель:</strong> ${vospitatelText}</p>
+                <p><strong>Место проведения:</strong> <span style="white-space: normal !important; word-wrap: break-word !important; overflow-wrap: break-word !important; display: inline-block !important; max-width: 100% !important; overflow: visible !important;">${escapeHtml(location)}</span></p>
+                <p><strong>Мероприятие:</strong></p>
+                <p style="white-space: normal !important; word-wrap: break-word !important; overflow-wrap: break-word !important;">${escapeHtml(event.description || '')}</p>
+                <p><strong>Дата:</strong> ${escapeHtml(event.event_date || '')}</p>
+                <p><strong>Время:</strong> ${escapeHtml(event.event_time || '')}</p>
+            `);
+            
+            const userData = await fetch('/api/user').then(r => r.json());
+            const canDelete = userData.admin_role === 'admin' || userData.admin_role === 'super_admin' || 
+                            (userData.admin_role === 'vospitatel' && userData.admin_id === event.admin_id);
+            
+            if (canDelete) {
+                currentEventId = eventId;
+                $('#deleteEventBtn').show();
+            } else {
+                $('#deleteEventBtn').hide();
+            }
+            
+            $('#viewAttendanceBtn').show();
+            currentEventId = eventId;
+            
+            const viewModalElement = document.getElementById('viewEventModal');
+            const viewDialog = viewModalElement.querySelector('.modal-dialog');
+            if (viewDialog) {
+                viewDialog.style.setProperty('max-width', '800px', 'important');
+                viewDialog.style.setProperty('width', '800px', 'important');
+                viewDialog.style.setProperty('transform', 'none', 'important');
+                viewDialog.style.setProperty('transition', 'none', 'important');
+                viewDialog.style.setProperty('margin', '1.75rem auto', 'important');
+            }
+            
+            const viewModal = new bootstrap.Modal(viewModalElement);
+            viewModal.show();
+        }
+
+
+        $(document).on('click', '#addCoauthorBtn', function() {
+
+            $('#coauthorSection').show();
+            $('#addCoauthorBtn').hide();
+            
+
+            setTimeout(() => {
+                loadVospitatels().catch(error => {
+                });
+            }, 100);
+        });
+
+        $('#removeCoauthorBtn').on('click', function() {
+            const coauthorSelect = document.getElementById('eventCoauthor');
+            if (coauthorSelect) {
+                coauthorSelect.value = '';
+
+                const comboboxWrapper = coauthorSelect.closest('.consta-combobox');
+                if (comboboxWrapper) {
+                    const displayInput = comboboxWrapper.querySelector('.consta-combobox-input');
+                    if (displayInput) {
+                        displayInput.value = '';
+                    }
+                }
+
+                $(coauthorSelect).trigger('change');
+            }
+            $('#coauthorSection').hide();
+            $('#addCoauthorBtn').show();
+        });
+
+
+        $('#submitEventBtn').on('click', async function() {
+            // Получаем значение location - используем jQuery для надежности
+            // jQuery может найти элементы даже если они скрыты или перемещены ConstaCombobox
+            let location = '';
+            let locationSelect = null;
+            
+            // Пробуем через jQuery (самый надежный способ)
+            const locationJQuery = $('#eventLocation').val();
+            if (locationJQuery) {
+                location = locationJQuery.trim();
+            }
+            
+            // Ищем элемент для отладки и как резервный вариант
+            // Ищем в модальном окне
+            const modalElement = document.getElementById('addEventModal');
+            
+            if (modalElement) {
+                // Ищем оригинальный select (может быть внутри ConstaCombobox обертки)
+                // ConstaCombobox оборачивает select в .consta-combobox, но сам select остается внутри
+                locationSelect = modalElement.querySelector('select#eventLocation');
+                
+                if (!locationSelect) {
+                    // Ищем через querySelectorAll и фильтруем по id
+                    const selects = modalElement.querySelectorAll('select');
+                    for (let sel of selects) {
+                        if (sel.id === 'eventLocation') {
+                            locationSelect = sel;
+                            break;
+                        }
+                    }
+                }
+                
+                // Если не нашли, ищем внутри .consta-combobox оберток
+                if (!locationSelect) {
+                    const comboboxWrappers = modalElement.querySelectorAll('.consta-combobox');
+                    for (let wrapper of comboboxWrappers) {
+                        const sel = wrapper.querySelector('select#eventLocation');
+                        if (sel) {
+                            locationSelect = sel;
+                            break;
+                        }
+                    }
+                }
+                
+                // Если все еще не нашли, ищем любой select с нужным id внутри модального окна
+                if (!locationSelect) {
+                    const allSelects = modalElement.querySelectorAll('select');
+                    for (let sel of allSelects) {
+                        if (sel.id === 'eventLocation' || sel.getAttribute('id') === 'eventLocation') {
+                            locationSelect = sel;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Если не нашли в модальном окне, ищем глобально
+            if (!locationSelect) {
+                locationSelect = document.getElementById('eventLocation');
+            }
+            
+            // Последняя попытка - ищем через jQuery и получаем нативный элемент
+            if (!locationSelect) {
+                const jqElement = $('#eventLocation');
+                if (jqElement.length > 0) {
+                    locationSelect = jqElement[0];
+                }
+            }
+            
+            // Если не получили через jQuery, пробуем получить из найденного элемента
+            if (!location && locationSelect) {
+                location = (locationSelect.value || '').trim();
+            }
+            
+            // Если все еще пусто, но есть ConstaCombobox, пробуем получить значение через него
+            if (!location && locationSelect && locationSelect._constaCombobox) {
+                // ConstaCombobox должен обновлять оригинальный select, но проверим напрямую
+                const combobox = locationSelect._constaCombobox;
+                if (combobox.element && combobox.element.value) {
+                    location = (combobox.element.value || '').trim();
+                }
+                // Также проверим визуальное значение в input (может быть установлено, но select не обновлен)
+                if (!location && combobox.input && combobox.input.value) {
+                    // Пытаемся найти соответствующее значение по тексту
+                    const inputText = combobox.input.value.trim();
+                    if (inputText && inputText !== combobox.options.placeholder) {
+                        // Ищем опцию с таким текстом
+                        for (let item of combobox.items) {
+                            if (item.label === inputText) {
+                                location = item.value.trim();
+                                // Обновляем select для синхронизации
+                                if (locationSelect) {
+                                    locationSelect.value = location;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Если элемент все еще не найден, пробуем найти ConstaCombobox input напрямую
+            if (!location && modalElement) {
+                // Ищем все .consta-combobox-input внутри модального окна
+                const comboboxInputs = modalElement.querySelectorAll('.consta-combobox-input');
+                console.log('Найдено combobox inputs:', comboboxInputs.length);
+                
+                // Находим input, который соответствует eventLocation
+                // Для этого ищем рядом с label "Место проведения"
+                const locationLabel = modalElement.querySelector('label[for="eventLocation"]');
+                console.log('Location label найден:', !!locationLabel);
+                
+                if (locationLabel) {
+                    // Ищем ближайший .consta-combobox к label
+                    const parentDiv = locationLabel.closest('.mb-3');
+                    console.log('Parent div найден:', !!parentDiv);
+                    
+                    if (parentDiv) {
+                        const comboboxWrapper = parentDiv.querySelector('.consta-combobox');
+                        console.log('Combobox wrapper найден:', !!comboboxWrapper);
+                        
+                        if (comboboxWrapper) {
+                            const comboboxInput = comboboxWrapper.querySelector('.consta-combobox-input');
+                            console.log('Combobox input найден:', !!comboboxInput, comboboxInput ? comboboxInput.value : 'N/A');
+                            
+                            if (comboboxInput && comboboxInput.value && comboboxInput.value !== 'Выберите место...' && comboboxInput.value !== comboboxInput.placeholder) {
+                                // Находим соответствующий select
+                                const nearbySelect = comboboxWrapper.querySelector('select');
+                                console.log('Nearby select найден:', !!nearbySelect);
+                                
+                                if (nearbySelect) {
+                                    // Ищем опцию с таким текстом
+                                    const options = nearbySelect.options;
+                                    console.log('Количество опций:', options.length);
+                                    
+                                    for (let i = 0; i < options.length; i++) {
+                                        const optionText = options[i].textContent.trim();
+                                        const inputValue = comboboxInput.value.trim();
+                                        console.log(`Опция ${i}: "${optionText}" vs input "${inputValue}"`);
+                                        
+                                        if (optionText === inputValue) {
+                                            location = options[i].value.trim();
+                                            console.log('Найдено значение location:', location);
+                                            break;
+                                        }
+                                    }
+                                } else {
+                                    // Если select не найден, используем значение напрямую из input
+                                    // В API locations value = text, поэтому можем использовать input.value напрямую
+                                    const inputValue = comboboxInput.value.trim();
+                                    if (inputValue && inputValue !== 'Выберите место...' && inputValue !== comboboxInput.placeholder) {
+                                        // В API locations value = text, поэтому используем значение напрямую
+                                        location = inputValue;
+                                        console.log('Найдено значение location напрямую из input:', location);
+                                    }
+                                    
+                                    // Если все еще не нашли, пробуем найти select в другом месте
+                                    if (!location) {
+                                        const allSelects = modalElement.querySelectorAll('select');
+                                        console.log('Всего select элементов в модальном окне:', allSelects.length);
+                                        
+                                        // Также ищем вне модального окна
+                                        const allSelectsGlobal = document.querySelectorAll('select.consta-combobox-original-select');
+                                        console.log('Всего select элементов с классом consta-combobox-original-select:', allSelectsGlobal.length);
+                                        
+                                        for (let sel of allSelectsGlobal) {
+                                            if (sel.id === 'eventLocation') {
+                                                const options = sel.options;
+                                                const inputValue = comboboxInput.value.trim();
+                                                
+                                                for (let i = 0; i < options.length; i++) {
+                                                    if (options[i].textContent.trim() === inputValue) {
+                                                        location = options[i].value.trim();
+                                                        console.log('Найдено значение location через глобальный поиск:', location);
+                                                        break;
+                                                    }
+                                                }
+                                                if (location) break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            const description = $('#eventDescription').val().trim();
+            
+
+            const dateInput = document.getElementById('eventDate');
+            let eventDate = '';
+            if (dateInput && dateInput._flatpickr) {
+                const fpInstance = dateInput._flatpickr;
+                const selectedDates = fpInstance.selectedDates;
+                if (selectedDates && selectedDates.length > 0) {
+                    eventDate = fpInstance.formatDate(selectedDates[0], 'Y-m-d');
+                } else {
+                    // Пробуем получить значение из input напрямую
+                    const dateStr = dateInput.value.trim() || $('#eventDate').val().trim();
+                    if (dateStr && dateStr.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
+                        const [day, month, year] = dateStr.split('.');
+                        eventDate = `${year}-${month}-${day}`;
+                    } else if (dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        eventDate = dateStr;
+                    } else if (dateStr) {
+                        eventDate = dateStr;
+                    }
+                }
+            } else {
+                const dateStr = $('#eventDate').val().trim();
+                if (dateStr && dateStr.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
+                    const [day, month, year] = dateStr.split('.');
+                    eventDate = `${year}-${month}-${day}`;
+                } else if (dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    eventDate = dateStr;
+                } else if (dateStr) {
+                    eventDate = dateStr;
+                }
+            }
+            
+
+            const timeInput = document.getElementById('eventTime');
+            let eventTime = '';
+            if (timeInput && timeInput._flatpickr) {
+                const fpInstance = timeInput._flatpickr;
+                const selectedDates = fpInstance.selectedDates;
+                if (selectedDates && selectedDates.length > 0) {
+                    eventTime = fpInstance.formatDate(selectedDates[0], 'H:i');
+                } else {
+                    // Пробуем получить значение из input напрямую
+                    const timeValue = timeInput.value.trim() || $('#eventTime').val().trim();
+                    if (timeValue) {
+                        // Проверяем формат времени (HH:MM или H:MM)
+                        if (timeValue.match(/^\d{1,2}:\d{2}$/)) {
+                            eventTime = timeValue;
+                        } else {
+                            eventTime = timeValue;
+                        }
+                    }
+                }
+            } else {
+                eventTime = $('#eventTime').val().trim();
+            }
+            
+            const coauthorId = $('#eventCoauthor').val() || null;
+            
+            // Получаем финальное значение location
+            const locationValueTrimmed = location.trim();
+            
+            // Дополнительная проверка через jQuery для отладки
+            const locationJQueryDebug = $('#eventLocation').val();
+            const locationSelectDebug = document.getElementById('eventLocation');
+            const locationSelectInModal = modalElement ? modalElement.querySelector('select#eventLocation') : null;
+            
+            // Отладочная информация
+            console.log('Проверка полей:', {
+                location: locationValueTrimmed,
+                locationLength: locationValueTrimmed ? locationValueTrimmed.length : 0,
+                locationJQuery: locationJQueryDebug || '',
+                locationJQueryLength: locationJQueryDebug ? locationJQueryDebug.length : 0,
+                locationSelectExists: !!locationSelect,
+                locationSelectDebugExists: !!locationSelectDebug,
+                locationSelectInModalExists: !!locationSelectInModal,
+                locationSelectValue: locationSelect ? locationSelect.value : 'N/A',
+                locationSelectSelectedIndex: locationSelect ? locationSelect.selectedIndex : 'N/A',
+                locationSelectOptionsLength: locationSelect ? locationSelect.options.length : 'N/A',
+                hasConstaCombobox: locationSelect && locationSelect._constaCombobox ? 'Yes' : 'No',
+                modalElementExists: !!modalElement,
+                description: description,
+                eventDate: eventDate,
+                eventTime: eventTime
+            });
+            
+            // Проверяем каждое поле отдельно для лучшей диагностики
+            // Проверяем location более тщательно
+            const isLocationEmpty = !locationValueTrimmed || 
+                                    locationValueTrimmed === '' || 
+                                    locationValueTrimmed === 'Выберите место...' || 
+                                    (locationSelect && locationSelect.selectedIndex === 0);
+            
+            if (isLocationEmpty) {
+                $('#addEventStatus').html('<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Выберите место проведения</div>');
+                if (locationSelect && locationSelect._constaCombobox && locationSelect._constaCombobox.input) {
+                    locationSelect._constaCombobox.input.focus();
+                } else {
+                    $('#eventLocation').focus();
+                }
+                return;
+            }
+            if (!description || description.trim() === '') {
+                $('#addEventStatus').html('<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Заполните описание мероприятия</div>');
+                return;
+            }
+            if (!eventDate || eventDate.trim() === '') {
+                $('#addEventStatus').html('<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Выберите дату мероприятия</div>');
+                return;
+            }
+            if (!eventTime || eventTime.trim() === '') {
+                $('#addEventStatus').html('<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Выберите время мероприятия</div>');
+                return;
+            }
+            
+            
+            $('#submitEventBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Добавление...');
+            $('#addEventStatus').html('');
+            
+            try {
+                const payload = {
+                    location: locationValueTrimmed,
+                    description,
+                    event_date: eventDate,
+                    event_time: eventTime
+                };
+                if (coauthorId) {
+                    payload.coauthor_id = parseInt(coauthorId);
+                }
+                
+                const response = await fetch('/api/events', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    $('#addEventStatus').html('<div class="alert alert-success"><i class="bi bi-check-circle"></i> Мероприятие успешно добавлено</div>');
+                    $('#addEventForm')[0].reset();
+                    $('#eventCoauthor').val('');
+                    $('#coauthorSection').hide();
+                    $('#addCoauthorBtn').show();
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('addEventModal'));
+                        if (modal) {
+                            modal.hide();
+                        }
+                        loadEvents();
+                    }, 1000);
+                } else {
+                    $('#addEventStatus').html(`<div class="alert alert-danger"><i class="bi bi-x-circle"></i> ${data.error || 'Ошибка добавления'}</div>`);
+                }
+            } catch (error) {
+                $('#addEventStatus').html(`<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Ошибка: ${error.message}</div>`);
+            } finally {
+                $('#submitEventBtn').prop('disabled', false).html('<i class="bi bi-check-circle"></i> Добавить');
+            }
+        });
+
+
+        $('#viewAttendanceBtn').on('click', function() {
+            if (currentEventId) {
+                window.location.href = `/events/${currentEventId}/attendance`;
+            }
+        });
+
+
+        $('#deleteEventBtn').on('click', async function() {
+            if (!currentEventId) return;
+            
+            if (typeof showBannerConfirm !== 'undefined') {
+                showBannerConfirm(
+                    'Вы уверены, что хотите удалить это мероприятие?',
+                    async () => {
+                        try {
+                            const response = await fetch(`/api/events/${currentEventId}`, {
+                                method: 'DELETE'
+                            });
+                            
+                            const data = await response.json();
+                            
+                            if (response.ok && data.success) {
+                                const viewModalElement = document.getElementById('viewEventModal');
+                                const viewDialog = viewModalElement.querySelector('.modal-dialog');
+                                if (viewDialog) {
+                                    viewDialog.style.maxWidth = '800px';
+                                    viewDialog.style.width = '800px';
+                                    viewDialog.style.transform = 'none';
+                                    viewDialog.style.transition = 'none';
+                                }
+                                
+                                const viewModal = bootstrap.Modal.getInstance(viewModalElement);
+                                if (viewModal) {
+                                    viewModal.hide();
+                                }
+                                loadEvents();
+                            } else {
+                                if (typeof showBannerAlert !== 'undefined') {
+                                    showBannerAlert('error', data.error || 'Ошибка удаления');
+                                } else {
+                                    alert(data.error || 'Ошибка удаления');
+                                }
+                            }
+                        } catch (error) {
+                            if (typeof showBannerAlert !== 'undefined') {
+                                showBannerAlert('error', 'Ошибка: ' + error.message);
+                            } else {
+                                alert('Ошибка: ' + error.message);
+                            }
+                        }
+                    }
+                );
+            } else {
+                if (!confirm('Вы уверены, что хотите удалить это мероприятие?')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/events/${currentEventId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        const viewModalElement = document.getElementById('viewEventModal');
+                        const viewDialog = viewModalElement.querySelector('.modal-dialog');
+                        if (viewDialog) {
+                            viewDialog.style.maxWidth = '800px';
+                            viewDialog.style.width = '800px';
+                            viewDialog.style.transform = 'none';
+                            viewDialog.style.transition = 'none';
+                        }
+                        
+                        const viewModal = bootstrap.Modal.getInstance(viewModalElement);
+                        if (viewModal) {
+                            viewModal.hide();
+                        }
+                        loadEvents();
+                    } else {
+                        alert(data.error || 'Ошибка удаления');
+                    }
+                } catch (error) {
+                    alert('Ошибка: ' + error.message);
+                }
+            }
+        });
+
+
+        $('#prevMonthBtn').on('click', function() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            loadEvents();
+        });
+
+        $('#nextMonthBtn').on('click', function() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            loadEvents();
+        });
+
+
+
+        $('#addEventModal').on('show.bs.modal', function() {
+            const modal = $(this);
+            const dialog = modal.find('.modal-dialog');
+            dialog.removeClass('modal-sm modal-md modal-lg').addClass('modal-xl');
+            dialog.css({
+                'max-width': '1140px',
+                'width': '1140px',
+                'transform': 'none',
+                'transition': 'none'
+            });
+            
+
+            loadLocations();
+            
+            const today = new Date();
+
+            setTimeout(() => {
+                const dateInput = document.getElementById('eventDate');
+                if (dateInput && dateInput._flatpickr) {
+                    dateInput._flatpickr.setDate(today, false);
+                } else {
+
+                    const day = String(today.getDate()).padStart(2, '0');
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const year = today.getFullYear();
+                    $('#eventDate').val(`${day}.${month}.${year}`);
+                }
+                
+
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const timeStr = `${hours}:${minutes}`;
+                const timeInput = document.getElementById('eventTime');
+                if (timeInput && timeInput._flatpickr) {
+
+                    timeInput._flatpickr.setDate(`2000-01-01 ${timeStr}`, false);
+                } else {
+                    $('#eventTime').val(timeStr);
+                }
+            }, 100);
+            
+            $('#eventCoauthor').val('');
+            $('#coauthorSection').hide();
+            $('#addCoauthorBtn').show();
+        });
+        
+
+        $('#addEventModal').on('shown.bs.modal', function() {
+
+            setTimeout(initModalComboboxes, 300);
+
+            setTimeout(initModalComboboxes, 800);
+        });
+        
+        $('#addEventModal').on('hide.bs.modal', function() {
+            const dialog = $(this).find('.modal-dialog');
+            dialog.css({
+                'max-width': '1140px',
+                'width': '1140px',
+                'transform': 'none',
+                'transition': 'none'
+            });
+        });
+        
+        $('#addEventModal').on('hidden.bs.modal', function() {
+            const dialog = $(this).find('.modal-dialog');
+            dialog.css({
+                'max-width': '1140px',
+                'width': '1140px',
+                'transform': 'none',
+                'transition': 'none'
+            });
+        });
+        
+        $('#viewEventModal').on('show.bs.modal', function() {
+            const dialog = $(this).find('.modal-dialog');
+            dialog.css({
+                'max-width': '800px',
+                'width': '800px',
+                'transform': 'none',
+                'transition': 'none'
+            });
+        });
+        
+        $('#viewEventModal').on('hide.bs.modal', function() {
+            const dialog = $(this).find('.modal-dialog');
+            dialog.css({
+                'max-width': '800px',
+                'width': '800px',
+                'transform': 'none',
+                'transition': 'none'
+            });
+        });
+        
+        $('#viewEventModal').on('hidden.bs.modal', function() {
+            const dialog = $(this).find('.modal-dialog');
+            dialog.css({
+                'max-width': '800px',
+                'width': '800px',
+                'transform': 'none',
+                'transition': 'none'
+            });
+        });
+
+
+        function initEventDatePickers() {
+            if (typeof flatpickr === 'undefined') {
+                setTimeout(initEventDatePickers, 100);
+                return;
+            }
+            
+            const locale = flatpickr.l10ns.ru || {
+                firstDayOfWeek: 1,
+                weekdays: {
+                    shorthand: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
+                    longhand: ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
+                },
+                months: {
+                    shorthand: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+                    longhand: ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+                }
+            };
+            
+
+            const eventDateInput = document.getElementById('eventDate');
+            if (eventDateInput && !eventDateInput.classList.contains('consta-datepicker-initialized')) {
+                const dateFp = flatpickr(eventDateInput, {
+                    dateFormat: 'd.m.Y',
+                    locale: locale,
+                    allowInput: true,
+                    clickOpens: true,
+                    animate: true,
+                    static: false,
+                    appendTo: eventDateInput.closest('.modal') || document.body,
+                    monthSelectorType: 'static',
+                    enableTime: false,
+                    onChange: function(selectedDates, dateStr, instance) {
+                        // Обновляем значение input при изменении
+                        if (dateStr) {
+                            eventDateInput.value = dateStr;
+                            $(eventDateInput).val(dateStr);
+                        }
+                    }
+                });
+                eventDateInput._flatpickr = dateFp;
+                eventDateInput.classList.add('consta-datepicker-initialized');
+            }
+            
+
+            const eventTimeInput = document.getElementById('eventTime');
+            if (eventTimeInput && !eventTimeInput.classList.contains('consta-datepicker-initialized')) {
+                const timeFp = flatpickr(eventTimeInput, {
+                    dateFormat: 'H:i',
+                    locale: locale,
+                    allowInput: true,
+                    clickOpens: true,
+                    animate: true,
+                    static: false,
+                    appendTo: eventTimeInput.closest('.modal') || document.body,
+                    enableTime: true,
+                    noCalendar: true,
+                    time_24hr: true,
+                    onChange: function(selectedDates, dateStr, instance) {
+                        // Обновляем значение input при изменении
+                        if (dateStr) {
+                            eventTimeInput.value = dateStr;
+                            $(eventTimeInput).val(dateStr);
+                        }
+                    }
+                });
+                eventTimeInput._flatpickr = timeFp;
+                eventTimeInput.classList.add('consta-datepicker-initialized');
+            }
+        }
+
+
+        $(document).ready(function() {
+            loadUserData();
+            loadLocations();
+            loadEvents();
+            
+
+            setTimeout(initEventDatePickers, 300);
+        });
+    </script>
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+    <script src="/static/js/consta-datepicker.js"></script>
+    <script src="/static/js/consta-banner.js"></script>
+    
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+</body>
+</html>

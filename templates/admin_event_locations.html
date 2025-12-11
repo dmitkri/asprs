@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Места проведения мероприятий</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <style>
+        .table th {
+            white-space: nowrap;
+            font-weight: 600;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+        .top-menu-content {
+            position: relative;
+        }
+        .top-menu-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff !important;
+            font-size: 1.25rem;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .top-menu-item.back-to-panel {
+            margin-right: auto;
+        }
+        .badge-inactive {
+            background-color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Места проведения мероприятий</h2>
+        </div>
+    </div>
+    
+    <div class="container mt-4" style="margin-top: 80px !important;">
+        <div class="mb-4">
+            <p class="text-muted">Управление местами проведения мероприятий. Добавляйте новые места или редактируйте существующие.</p>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Добавить место</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="newLocationName" class="form-label">Название места <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="newLocationName" placeholder="Например: Коворкинг 'Псоу'">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="newLocationDescription" class="form-label">Описание (необязательно)</label>
+                        <input type="text" class="form-control" id="newLocationDescription" placeholder="Дополнительная информация">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <button class="btn btn-primary" id="addLocationBtn">
+                            <i class="bi bi-plus"></i> Добавить место
+                        </button>
+                    </div>
+                </div>
+                <div id="addLocationStatus" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Список мест</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Название</th>
+                                <th>Описание</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="locationsTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Загрузка...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно редактирования -->
+    <div class="modal fade" id="editLocationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Редактировать место</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editLocationName" class="form-label">Название места <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editLocationName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editLocationDescription" class="form-label">Описание</label>
+                        <input type="text" class="form-control" id="editLocationDescription">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editLocationActive">
+                            <label class="form-check-label" for="editLocationActive">
+                                Активно (место доступно для выбора)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="saveLocationBtn">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+
+    <script>
+        let currentEditId = null;
+        const editModal = new bootstrap.Modal(document.getElementById('editLocationModal'));
+
+        async function loadLocations() {
+            try {
+                const response = await fetch('/api/events/locations/all');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("Ответ не является JSON");
+                }
+                const data = await response.json();
+                
+                if (data.success && data.locations) {
+                    const tbody = $('#locationsTableBody');
+                    tbody.empty();
+                    
+                    if (data.locations.length === 0) {
+                        tbody.append('<tr><td colspan="5" class="text-center text-muted">Нет мест проведения мероприятий</td></tr>');
+                        return;
+                    }
+                    
+                    data.locations.forEach((location, index) => {
+                        const row = $('<tr></tr>');
+                        if (!location.is_active) {
+                            row.addClass('table-secondary');
+                        }
+                        
+                        row.append(`<td>${index + 1}</td>`);
+                        row.append(`<td><strong>${escapeHtml(location.name)}</strong></td>`);
+                        row.append(`<td>${location.description ? escapeHtml(location.description) : '<span class="text-muted">—</span>'}</td>`);
+                        
+                        const statusBadge = location.is_active 
+                            ? '<span class="badge bg-success">Активно</span>'
+                            : '<span class="badge bg-secondary">Неактивно</span>';
+                        row.append(`<td>${statusBadge}</td>`);
+                        
+                        const actions = $('<td></td>');
+                        actions.append(`<button class="btn btn-sm btn-outline-primary me-1 edit-btn" data-id="${location.id}"><i class="bi bi-pencil"></i> Редактировать</button>`);
+                        if (location.is_active) {
+                            actions.append(`<button class="btn btn-sm btn-outline-danger deactivate-btn" data-id="${location.id}"><i class="bi bi-x-circle"></i> Деактивировать</button>`);
+                        } else {
+                            actions.append(`<button class="btn btn-sm btn-outline-success activate-btn" data-id="${location.id}"><i class="bi bi-check-circle"></i> Активировать</button>`);
+                        }
+                        row.append(actions);
+                        
+                        tbody.append(row);
+                    });
+                    
+                    // Привязываем обработчики событий
+                    $('.edit-btn').on('click', function() {
+                        const id = $(this).data('id');
+                        editLocation(id);
+                    });
+                    
+                    $('.deactivate-btn').on('click', function() {
+                        const id = $(this).data('id');
+                        toggleLocationStatus(id, false);
+                    });
+                    
+                    $('.activate-btn').on('click', function() {
+                        const id = $(this).data('id');
+                        toggleLocationStatus(id, true);
+                    });
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки мест:', error);
+                let errorMsg = 'Ошибка загрузки данных';
+                if (error.message) {
+                    errorMsg += ': ' + error.message;
+                }
+                $('#locationsTableBody').html(`<tr><td colspan="5" class="text-center text-danger">${errorMsg}</td></tr>`);
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }
+
+        async function editLocation(id) {
+            try {
+                const response = await fetch('/api/events/locations/all');
+                const data = await response.json();
+                const location = data.locations.find(l => l.id === id);
+                
+                if (location) {
+                    currentEditId = id;
+                    $('#editLocationName').val(location.name);
+                    $('#editLocationDescription').val(location.description || '');
+                    $('#editLocationActive').prop('checked', location.is_active === 1);
+                    editModal.show();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки места:', error);
+                alert('Ошибка загрузки данных места');
+            }
+        }
+
+        $('#saveLocationBtn').on('click', async function() {
+            if (!currentEditId) return;
+            
+            const name = $('#editLocationName').val().trim();
+            if (!name) {
+                alert('Название места обязательно');
+                return;
+            }
+            
+            const description = $('#editLocationDescription').val().trim();
+            const isActive = $('#editLocationActive').is(':checked');
+            
+            try {
+                const response = await fetch(`/api/events/locations/${currentEditId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        description: description,
+                        is_active: isActive
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    editModal.hide();
+                    loadLocations();
+                } else {
+                    alert(data.error || 'Ошибка обновления места');
+                }
+            } catch (error) {
+                console.error('Ошибка обновления места:', error);
+                alert('Ошибка обновления места');
+            }
+        });
+
+        async function toggleLocationStatus(id, activate) {
+            try {
+                // Сначала получаем текущие данные места
+                const locationsResponse = await fetch('/api/events/locations/all');
+                const locationsData = await locationsResponse.json();
+                const location = locationsData.locations.find(l => l.id === id);
+                
+                if (!location) {
+                    alert('Место не найдено');
+                    return;
+                }
+                
+                const response = await fetch(`/api/events/locations/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: location.name,
+                        description: location.description || '',
+                        is_active: activate
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    loadLocations();
+                } else {
+                    alert(data.error || 'Ошибка изменения статуса');
+                }
+            } catch (error) {
+                console.error('Ошибка изменения статуса:', error);
+                alert('Ошибка изменения статуса');
+            }
+        }
+
+        $('#addLocationBtn').on('click', async function() {
+            const name = $('#newLocationName').val().trim();
+            if (!name) {
+                $('#addLocationStatus').html('<div class="alert alert-danger">Название места обязательно</div>');
+                return;
+            }
+            
+            const description = $('#newLocationDescription').val().trim();
+            
+            try {
+                const response = await fetch('/api/events/locations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        description: description
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    $('#addLocationStatus').html('<div class="alert alert-success">Место успешно добавлено</div>');
+                    $('#newLocationName').val('');
+                    $('#newLocationDescription').val('');
+                    loadLocations();
+                    setTimeout(() => $('#addLocationStatus').empty(), 3000);
+                } else {
+                    $('#addLocationStatus').html(`<div class="alert alert-danger">${data.error || 'Ошибка добавления места'}</div>`);
+                }
+            } catch (error) {
+                console.error('Ошибка добавления места:', error);
+                $('#addLocationStatus').html('<div class="alert alert-danger">Ошибка добавления места</div>');
+            }
+        });
+
+        $(document).ready(function() {
+            loadLocations();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Оплата проживания - Аудит</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="/static/css/consta-datepicker.css">
+    <link rel="stylesheet" href="/static/css/consta-banner.css">
+    <link rel="stylesheet" href="/static/css/consta-button.css">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <style>
+        .payment-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: box-shadow 0.3s;
+        }
+        .payment-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-pending {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .status-approved,
+        .status-accepted {
+            background-color: #28a745;
+            color: #fff;
+        }
+        .status-assigned {
+            background-color: #0dcaf0;
+            color: #003146;
+        }
+        .status-rejected {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        .receipt-image {
+            max-width: 300px;
+            max-height: 400px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        .modal-receipt-image {
+            max-width: 100%;
+            max-height: 80vh;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Оплата проживания</h2>
+            <button class="top-menu-item" data-bs-toggle="modal" data-bs-target="#calculatePeriodModal">
+                <i class="bi bi-calculator"></i>
+                <span>Рассчитать оплату</span>
+            </button>
+            <button class="top-menu-item" onclick="showDirectAssignModal()">
+                <i class="bi bi-person-plus"></i>
+                <span>Назначить платеж</span>
+            </button>
+            <button class="top-menu-item" id="sendRemindersBtn" onclick="sendRemindersToAll()">
+                <i class="bi bi-send"></i>
+                <span>Напомнить всем</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="container mt-4" style="margin-top: 80px !important;">
+        <div class="mb-3">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary" onclick="filterPayments('all')" id="filterAll">
+                    Все
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="filterPayments('assigned')" id="filterAssigned">
+                    Назначенные
+                </button>
+                <button type="button" class="btn btn-outline-primary active" onclick="filterPayments('pending')" id="filterPending">
+                    Ожидают проверки
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="filterPayments('accepted')" id="filterAccepted">
+                    Одобренные
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="filterPayments('rejected')" id="filterRejected">
+                    Отклоненные
+                </button>
+            </div>
+        </div>
+
+        <div id="paymentsList" class="row">
+            
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="receiptModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Чек об оплате</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modalReceiptImage" src="" alt="Чек" class="modal-receipt-image">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="calculatePeriodModal" tabindex="-1">
+        <div class="modal-dialog modal-xl" style="max-width: 1200px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Расчет оплаты за период</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="periodStartDate" class="form-label">Дата начала:</label>
+                        <input type="date" id="periodStartDate" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="periodEndDate" class="form-label">Дата окончания:</label>
+                        <input type="date" id="periodEndDate" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Сумма за месяц:</label>
+                        <div class="d-flex flex-wrap gap-2" id="periodMonthlyAmountOptions">
+                            <input type="radio" class="btn-check" name="periodMonthlyAmount" id="amountOption900" value="900" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="amountOption900">900 ₽</label>
+
+                            <input type="radio" class="btn-check" name="periodMonthlyAmount" id="amountOption1500" value="1500" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="amountOption1500">1 500 ₽</label>
+
+                            <input type="radio" class="btn-check" name="periodMonthlyAmount" id="amountOption2900" value="2900" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="amountOption2900">2 900 ₽</label>
+
+                            <input type="radio" class="btn-check" name="periodMonthlyAmount" id="amountOption5800" value="5800" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="amountOption5800">5 800 ₽</label>
+                        </div>
+                    </div>
+                    <div id="periodCalculationResult" style="display: none;">
+                        <hr>
+                        <h6>Результат расчета:</h6>
+                        <div id="periodCalculationDetails"></div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-success" onclick="showAssignStudentModal()">
+                                <i class="bi bi-person-plus"></i> Назначить студенту
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-primary" onclick="calculatePeriodPayment()">
+                        <i class="bi bi-calculator"></i> Рассчитать
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="assignStudentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Назначить платеж студенту</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="assignStudentAmount">
+                    <input type="hidden" id="assignStudentStartDate">
+                    <input type="hidden" id="assignStudentEndDate">
+                    <div class="mb-3" id="directAmountField" style="display: none;">
+                        <label for="directAssignAmount" class="form-label">Сумма платежа (₽):</label>
+                        <input type="number" id="directAssignAmount" class="form-control" placeholder="Введите сумму" min="0" step="0.01" required>
+                        <small class="form-text text-muted">Укажите сумму платежа для назначения студенту</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="studentSearch" class="form-label">Поиск студента:</label>
+                        <input type="text" id="studentSearch" class="form-control" placeholder="Введите ФИО студента (минимум 2 символа)..." onkeyup="searchStudents()" autocomplete="off">
+                        <small class="form-text text-muted">Начните вводить ФИО студента для поиска</small>
+                    </div>
+                    <div id="studentsList" style="max-height: 300px; overflow-y: auto;">
+                        
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label for="assignComment" class="form-label">Комментарий (необязательно):</label>
+                        <textarea id="assignComment" class="form-control" rows="2" placeholder="Дополнительный комментарий к платежу"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-success" onclick="assignPaymentToStudent()" id="assignPaymentBtn">
+                        <i class="bi bi-check"></i> Назначить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="auditModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="auditModalTitle">Одобрить оплату</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="auditPaymentId">
+                    <div class="mb-3">
+                        <label for="auditComment" class="form-label">Комментарий (необязательно):</label>
+                        <textarea id="auditComment" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-success" onclick="approvePayment()" id="approveBtn">Одобрить</button>
+                    <button type="button" class="btn btn-danger" onclick="rejectPayment()" id="rejectBtn">Отклонить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAction = 'approve';
+
+        function formatDateForApi(dateValue) {
+            if (!dateValue) {
+                return '';
+            }
+            const parts = dateValue.split('-');
+            if (parts.length !== 3) {
+                return '';
+            }
+            const [year, month, day] = parts;
+            return `${day}.${month}.${year}`;
+        }
+
+        function getSelectedMonthlyAmount() {
+            const value = $('input[name="periodMonthlyAmount"]:checked').val();
+            const amount = parseFloat(value);
+            return isNaN(amount) ? null : amount;
+        }
+
+        let currentStatusFilter = 'pending';
+
+        function filterPayments(status) {
+            currentStatusFilter = status;
+            $('.btn-group button').removeClass('active');
+            if (status === 'all') {
+                $('#filterAll').addClass('active');
+            } else if (status === 'assigned') {
+                $('#filterAssigned').addClass('active');
+            } else if (status === 'pending') {
+                $('#filterPending').addClass('active');
+            } else if (status === 'accepted') {
+                $('#filterAccepted').addClass('active');
+            } else if (status === 'rejected') {
+                $('#filterRejected').addClass('active');
+            }
+            loadPayments();
+        }
+
+        function loadPayments() {
+            const status = currentStatusFilter === 'all' ? '' : currentStatusFilter;
+            $.ajax({
+                url: '/api/payment/list',
+                method: 'GET',
+                data: { status: status },
+                success: function(response) {
+                    if (response.success) {
+                        renderPayments(response.payments);
+                    }
+                },
+                error: function(xhr) {
+                    
+                    $('#paymentsList').html('<div class="alert alert-danger">Ошибка загрузки данных</div>');
+                }
+            });
+        }
+
+        function renderPayments(payments) {
+            const container = $('#paymentsList');
+            container.empty();
+
+            if (payments.length === 0) {
+                container.html('<div class="alert alert-info">Нет оплат для отображения</div>');
+                return;
+            }
+
+            payments.forEach(payment => {
+                const statusText = {
+                    'assigned': 'Назначен платеж',
+                    'pending': 'Ожидает проверки',
+                    'accepted': 'Одобрена',
+                    'rejected': 'Отклонена'
+                };
+                const statusClass = `status-${payment.status}`;
+                const statusLabel = statusText[payment.status] || payment.status;
+
+                const card = $(`
+                    <div class="col-md-6 col-lg-4">
+                        <div class="payment-card">
+                            <h5>${payment.fio}</h5>
+                            <p><strong>Комната:</strong> ${payment.building}-${payment.entrance}-${payment.room_number}</p>
+                            <p><strong>Дата загрузки:</strong> ${formatDate(payment.created_at)}</p>
+                            <p><strong>Статус:</strong> <span class="status-badge ${statusClass}">${statusLabel}</span></p>
+                            ${payment.audit_admin_fio ? `<p><strong>Проверил:</strong> ${payment.audit_admin_fio}</p>` : ''}
+                            ${payment.audit_comment ? `<p><strong>Комментарий:</strong> ${payment.audit_comment}</p>` : ''}
+                            <div class="mt-3">
+                                ${payment.receipt_file ? `<button class="btn btn-sm btn-primary" onclick="viewReceipt(${payment.id})">Просмотреть чек</button>` : ''}
+                                ${payment.status === 'pending' ? `
+                                    <button class="btn btn-sm btn-success" onclick="openAuditModal(${payment.id}, 'approve')">Одобрить</button>
+                                    <button class="btn btn-sm btn-danger" onclick="openAuditModal(${payment.id}, 'reject')">Отклонить</button>
+                                ` : payment.status === 'assigned' ? `
+                                    <span class="text-muted">Ожидает загрузку чека студентом</span>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `);
+                container.append(card);
+            });
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('ru-RU');
+        }
+
+        function viewReceipt(paymentId) {
+            const imageUrl = `/api/payment/receipt/${paymentId}`;
+            $('#modalReceiptImage').attr('src', imageUrl);
+            $('#receiptModal').modal('show');
+        }
+
+        function openAuditModal(paymentId, action) {
+            currentAction = action;
+            $('#auditPaymentId').val(paymentId);
+            $('#auditComment').val('');
+            $('#auditModalTitle').text(action === 'approve' ? 'Одобрить оплату' : 'Отклонить оплату');
+            $('#approveBtn').toggle(action === 'approve');
+            $('#rejectBtn').toggle(action === 'reject');
+            $('#auditModal').modal('show');
+        }
+
+        function approvePayment() {
+            const paymentId = $('#auditPaymentId').val();
+            const comment = $('#auditComment').val();
+
+            $.ajax({
+                url: '/api/payment/approve',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    payment_id: paymentId,
+                    comment: comment
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        $('#auditModal').modal('hide');
+                        loadPayments();
+                        alert('Оплата одобрена');
+                    }
+                },
+                error: function(xhr) {
+                    alert('Ошибка при одобрении оплаты: ' + (xhr.responseJSON?.error || 'Неизвестная ошибка'));
+                }
+            });
+        }
+
+        function rejectPayment() {
+            const paymentId = $('#auditPaymentId').val();
+            const comment = $('#auditComment').val();
+
+            $.ajax({
+                url: '/api/payment/reject',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    payment_id: paymentId,
+                    comment: comment
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        $('#auditModal').modal('hide');
+                        loadPayments();
+                        alert('Оплата отклонена');
+                    }
+                },
+                error: function(xhr) {
+                    alert('Ошибка при отклонении оплаты: ' + (xhr.responseJSON?.error || 'Неизвестная ошибка'));
+                }
+            });
+        }
+
+        function sendRemindersToAll() {
+            if (typeof showBannerConfirm !== 'undefined') {
+                showBannerConfirm(
+                    'Отправить напоминания об оплате всем студентам, которые не оплатили?',
+                    function() {
+                        doSendRemindersToAll();
+                    },
+                    function() {
+                    }
+                );
+            } else {
+                if (!confirm('Отправить напоминания об оплате всем студентам, которые не оплатили?')) {
+                    return;
+                }
+                doSendRemindersToAll();
+            }
+        }
+        
+        function doSendRemindersToAll() {
+            
+            const btn = $('#sendRemindersBtn');
+            const originalText = btn.html();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Отправка...');
+            
+            $.ajax({
+                url: '/api/payment/send_reminders_to_all',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        let message = `Напоминания отправлены!\n\nОтправлено: ${response.sent}\nНе удалось отправить: ${response.failed}\nВсего студентов: ${response.total || 0}`;
+                        
+                        if (response.errors && response.errors.length > 0) {
+                            message += `\n\nОшибки (первые 10):\n${response.errors.slice(0, 10).join('\n')}`;
+                            if (response.errors.length > 10) {
+                                message += `\n... и еще ${response.errors.length - 10} ошибок`;
+                            }
+                        }
+                        
+                        if (typeof showBannerSuccess !== 'undefined') {
+                            const htmlMessage = message.replace(/\n/g, '<br>');
+                            showBannerSuccess(htmlMessage, 'Успешно', [], 10000);
+                        } else {
+                            alert(message);
+                        }
+                    } else {
+                        const errorMsg = 'Ошибка: ' + (response.error || 'Не удалось отправить напоминания');
+                        if (typeof showBannerError !== 'undefined') {
+                            showBannerError(errorMsg, 'Ошибка');
+                        } else {
+                            alert(errorMsg);
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    let errorMsg = 'Ошибка при отправке напоминаний';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMsg = xhr.responseJSON.error;
+                    }
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError(errorMsg, 'Ошибка');
+                    } else {
+                        alert(errorMsg);
+                    }
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html(originalText);
+                }
+            });
+        }
+
+        function calculatePeriodPayment() {
+            const startDateRaw = $('#periodStartDate').val();
+            const endDateRaw = $('#periodEndDate').val();
+            const startDate = formatDateForApi(startDateRaw);
+            const endDate = formatDateForApi(endDateRaw);
+            const monthlyAmount = getSelectedMonthlyAmount();
+            
+            if (!startDate || !endDate) {
+                alert('Выберите дату начала и дату окончания');
+                return;
+            }
+            
+            if (!monthlyAmount || monthlyAmount <= 0) {
+                alert('Выберите сумму за месяц');
+                return;
+            }
+            
+            $.ajax({
+                url: '/api/payment/calculate_period',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    start_date: startDate,
+                    end_date: endDate,
+                    monthly_amount: monthlyAmount
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        let html = `
+                            <div class="alert alert-success">
+                                <strong>Период:</strong> ${response.start_date} - ${response.end_date}<br>
+                                <strong>Всего дней:</strong> ${response.total_days}<br>
+                                <strong>Сумма за месяц:</strong> ${response.monthly_amount} руб.<br>
+                                <strong>Итого к оплате:</strong> <span style="font-size: 1.2em; font-weight: bold; color: #28a745;">${response.total_amount} руб.</span>
+                            </div>
+                            <table class="table table-striped table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Месяц</th>
+                                        <th>Период</th>
+                                        <th>Дней в периоде</th>
+                                        <th>Дней в месяце</th>
+                                        <th>Сумма</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+                        
+                        response.month_calculations.forEach(function(calc) {
+                            html += `
+                                <tr>
+                                    <td>${calc.month}</td>
+                                    <td>${calc.period}</td>
+                                    <td>${calc.days_in_period}</td>
+                                    <td>${calc.days_in_month}</td>
+                                    <td><strong>${calc.amount} руб.</strong></td>
+                                </tr>
+                            `;
+                        });
+                        
+                        html += `
+                                </tbody>
+                            </table>
+                        `;
+                        
+                        $('#periodCalculationDetails').html(html);
+                        $('#periodCalculationResult').show();
+                        
+                        window.calculationData = {
+                            amount: response.total_amount,
+                            start_date: response.start_date,
+                            end_date: response.end_date
+                        };
+                    } else {
+                        alert('Ошибка: ' + (response.error || 'Неизвестная ошибка'));
+                        $('#periodCalculationResult').hide();
+                    }
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Ошибка при расчете';
+                    alert('Ошибка: ' + error);
+                    $('#periodCalculationResult').hide();
+                }
+            });
+        }
+
+        function showDirectAssignModal() {
+            window.calculationData = null;
+            $('#assignStudentAmount').val('');
+            $('#assignStudentStartDate').val('');
+            $('#assignStudentEndDate').val('');
+            $('#directAssignAmount').val('');
+            $('#directAmountField').show();
+            $('#studentSearch').val('');
+            $('#assignComment').val('');
+            $('#studentsList').html('<div class="text-muted text-center py-3">Введите минимум 2 символа для поиска студента</div>');
+            selectedStudentId = null;
+            $('#assignStudentModal').modal('show');
+        }
+
+        function showAssignStudentModal() {
+            if (!window.calculationData) {
+                alert('Сначала выполните расчет');
+                return;
+            }
+            
+            $('#assignStudentAmount').val(window.calculationData.amount);
+            $('#assignStudentStartDate').val(window.calculationData.start_date);
+            $('#assignStudentEndDate').val(window.calculationData.end_date);
+            $('#directAssignAmount').val('');
+            $('#directAmountField').hide();
+            $('#studentSearch').val('');
+            $('#assignComment').val('');
+            $('#studentsList').html('<div class="text-muted text-center py-3">Введите минимум 2 символа для поиска студента</div>');
+            selectedStudentId = null;
+            $('#assignStudentModal').modal('show');
+        }
+
+        function searchStudents() {
+            const searchTerm = $('#studentSearch').val().trim();
+            
+            if (searchTerm.length < 2) {
+                $('#studentsList').html('<div class="text-muted text-center py-3">Введите минимум 2 символа для поиска</div>');
+                return;
+            }
+            
+            $('#studentsList').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm" role="status"></div> <span class="ms-2">Поиск...</span></div>');
+            
+            $.ajax({
+                url: '/api/employees/search',
+                method: 'GET',
+                data: { q: searchTerm, limit: 20 },
+                success: function(response) {
+                    
+                    if (response.success && response.employees && response.employees.length > 0) {
+                        let html = '<div class="list-group">';
+                        response.employees.forEach(function(emp) {
+                            const fio = escapeHtml(emp.fio);
+                            const roomInfo = emp.room_number ? '<br><small class="text-muted">Комната: ' + escapeHtml(emp.room_number) + '</small>' : '';
+                            html += `
+                                <button type="button" class="list-group-item list-group-item-action select-student-btn" data-student-id="${emp.id}">
+                                    <strong>${fio}</strong>
+                                    ${roomInfo}
+                                </button>
+                            `;
+                        });
+                        html += '</div>';
+                        $('#studentsList').html(html);
+                    } else {
+                        $('#studentsList').html('<div class="text-muted text-center py-3">Студенты не найдены. Попробуйте изменить поисковый запрос.</div>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    
+                    let errorMsg = 'Ошибка при поиске студентов';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMsg += ': ' + xhr.responseJSON.error;
+                    }
+                    $('#studentsList').html('<div class="alert alert-danger">' + errorMsg + '</div>');
+                }
+            });
+        }
+
+        let selectedStudentId = null;
+
+        $(document).on('click', '.select-student-btn', function(e) {
+            e.preventDefault();
+            const id = $(this).data('student-id');
+            selectStudent(id, $(this));
+        });
+
+        function selectStudent(id, element) {
+            selectedStudentId = id;
+            $('#studentsList .select-student-btn').removeClass('active');
+            if (element && element.length) {
+                element.addClass('active');
+            }
+        }
+
+        function assignPaymentToStudent() {
+            if (!selectedStudentId) {
+                alert('Выберите студента из списка');
+                return;
+            }
+            
+            let amount = $('#assignStudentAmount').val();
+            if (!amount || amount === '') {
+                amount = $('#directAssignAmount').val();
+            }
+            
+            const startDate = $('#assignStudentStartDate').val();
+            const endDate = $('#assignStudentEndDate').val();
+            const comment = $('#assignComment').val().trim();
+            
+            if (!amount || amount === '') {
+                alert('Ошибка: сумма не указана');
+                return;
+            }
+            
+            const amountNum = parseFloat(amount);
+            if (isNaN(amountNum) || amountNum <= 0) {
+                alert('Ошибка: сумма должна быть положительным числом');
+                return;
+            }
+            
+            const btn = $('#assignPaymentBtn');
+            const originalText = btn.html();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Назначение...');
+            
+            $.ajax({
+                url: '/api/payment/assign_to_student',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    employee_id: selectedStudentId,
+                    amount: amount,
+                    start_date: startDate,
+                    end_date: endDate,
+                    comment: comment
+                }),
+                success: function(response) {
+                    
+                    if (response.success) {
+                        alert(response.message);
+                        $('#assignStudentModal').modal('hide');
+                        selectedStudentId = null;
+                        window.calculationData = null;
+                        $('#periodCalculationResult').hide();
+                        $('#directAssignAmount').val('');
+                        $('#assignStudentAmount').val('');
+                        $('#assignStudentStartDate').val('');
+                        $('#assignStudentEndDate').val('');
+                        $('#studentSearch').val('');
+                        $('#assignComment').val('');
+                        $('#studentsList').html('');
+                        loadPayments();
+                    } else {
+                        alert('Ошибка: ' + (response.error || 'Неизвестная ошибка'));
+                    }
+                    btn.prop('disabled', false).html(originalText);
+                },
+                error: function(xhr, status, error) {
+                    
+                    let errorMsg = 'Ошибка при назначении платежа';
+                    if (xhr.responseJSON) {
+                        if (xhr.responseJSON.error) {
+                            errorMsg = xhr.responseJSON.error;
+                        } else if (xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        }
+                    } else if (xhr.status === 401) {
+                        errorMsg = 'Не авторизован. Пожалуйста, войдите в систему заново.';
+                    } else if (xhr.status === 403) {
+                        errorMsg = 'Доступ запрещен. У вас нет прав для назначения платежей.';
+                    } else if (xhr.status === 0) {
+                        errorMsg = 'Не удалось подключиться к серверу. Проверьте подключение к интернету.';
+                    }
+                    alert('Ошибка: ' + errorMsg);
+                    btn.prop('disabled', false).html(originalText);
+                }
+            });
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text ? text.replace(/[&<>"']/g, m => map[m]) : '';
+        }
+
+        $('#assignStudentModal').on('hidden.bs.modal', function() {
+            selectedStudentId = null;
+            $('#directAssignAmount').val('');
+            $('#assignStudentAmount').val('');
+            $('#assignStudentStartDate').val('');
+            $('#assignStudentEndDate').val('');
+            $('#studentSearch').val('');
+            $('#assignComment').val('');
+            $('#studentsList').html('');
+            $('#directAmountField').hide();
+        });
+
+        $(document).ready(function() {
+            loadPayments();
+            
+            if (typeof ConstaDatePicker !== 'undefined') {
+                ConstaDatePicker.init();
+            }
+        });
+    </script>
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+    <script src="/static/js/consta-datepicker.js"></script>
+    <script src="/static/js/consta-banner.js"></script>
+    
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+</body>
+</html>
+

@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Управление ролями</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/css/consta-banner.css">
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <style>
+        .permission-item {
+            margin-bottom: 10px;
+        }
+        .permission-item label {
+            cursor: pointer;
+        }
+        .top-menu-content {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .top-menu-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff !important;
+            font-size: 1.25rem;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .top-menu-item.back-to-panel {
+            margin-right: auto;
+        }
+        .top-menu-content .top-menu-item:last-child {
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Управление ролями</h2>
+            <button class="top-menu-item" data-bs-toggle="modal" data-bs-target="#addRoleModal">
+                <i class="bi bi-plus-circle"></i>
+                <span>Создать роль</span>
+            </button>
+        </div>
+    </div>
+    
+    <div class="container mt-4" style="margin-top: 80px !important;">
+        <div class="mb-4">
+            <p class="text-muted">Создавайте и настраивайте роли администраторов с различными правами доступа</p>
+        </div>
+
+        <div class="row" id="rolesList">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-center py-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="addRoleModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Создать роль</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addRoleForm">
+                        <div class="mb-3">
+                            <label for="newRoleName" class="form-label">Название роли</label>
+                            <input type="text" class="form-control" id="newRoleName" required>
+                            <small class="form-text text-muted">Латинскими буквами, без пробелов (например: moderator)</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newRoleDescription" class="form-label">Описание</label>
+                            <input type="text" class="form-control" id="newRoleDescription">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Права доступа:</label>
+                            <div id="addRolePermissions">
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="addAll" value="all">
+                                        <label class="form-check-label" for="addAll">
+                                            <strong>Все права (полный доступ)</strong>
+                                        </label>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addView" value="view">
+                                        <label class="form-check-label" for="addView">Просмотр</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addEdit" value="edit">
+                                        <label class="form-check-label" for="addEdit">Редактирование студентов</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addDelete" value="delete">
+                                        <label class="form-check-label" for="addDelete">Удаление студентов</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addImport" value="import">
+                                        <label class="form-check-label" for="addImport">Импорт Excel</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addManageColumns" value="manage_columns">
+                                        <label class="form-check-label" for="addManageColumns">Управление столбцами</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addManageAdmins" value="manage_admins">
+                                        <label class="form-check-label" for="addManageAdmins">Управление администраторами</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addManageBedLinen" value="manage_bed_linen">
+                                        <label class="form-check-label" for="addManageBedLinen">Управление бельем</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addManageSendMessages" value="manage_send_messages">
+                                        <label class="form-check-label" for="addManageSendMessages">Отправка сообщений</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addViewReports" value="view_reports">
+                                        <label class="form-check-label" for="addViewReports">Просмотр отчетов</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addManageTgUsers" value="manage_tg_users">
+                                        <label class="form-check-label" for="addManageTgUsers">Управление Telegram пользователями</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addScanQr" value="scan_qr">
+                                        <label class="form-check-label" for="addScanQr">Сканер QR-кодов</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addManagePayments" value="manage_payments">
+                                        <label class="form-check-label" for="addManagePayments">Управление оплатами</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addManageRooms" value="manage_rooms">
+                                        <label class="form-check-label" for="addManageRooms">Управление комнатами</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addManageMinors" value="manage_minors">
+                                        <label class="form-check-label" for="addManageMinors">Управление несовершеннолетними</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addManageRoundAssignments" value="manage_round_assignments">
+                                        <label class="form-check-label" for="addManageRoundAssignments">Управление назначениями на обход</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="addManageEvents" value="manage_events">
+                                        <label class="form-check-label" for="addManageEvents">Управление календарем мероприятий</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="addRoleStatus"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="submitAddRoleBtn">
+                        <i class="bi bi-check-circle"></i> Создать
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="editRoleModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Редактировать роль</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editRoleForm">
+                        <input type="hidden" id="editRoleName">
+                        <div class="mb-3">
+                            <label class="form-label">Название роли</label>
+                            <input type="text" class="form-control" id="editRoleNameDisplay" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editRoleDescription" class="form-label">Описание</label>
+                            <input type="text" class="form-control" id="editRoleDescription">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Права доступа:</label>
+                            <div id="editRolePermissions">
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="editAll" value="all">
+                                        <label class="form-check-label" for="editAll">
+                                            <strong>Все права (полный доступ)</strong>
+                                        </label>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editView" value="view">
+                                        <label class="form-check-label" for="editView">Просмотр</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editEdit" value="edit">
+                                        <label class="form-check-label" for="editEdit">Редактирование студентов</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editDelete" value="delete">
+                                        <label class="form-check-label" for="editDelete">Удаление студентов</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editImport" value="import">
+                                        <label class="form-check-label" for="editImport">Импорт Excel</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editManageColumns" value="manage_columns">
+                                        <label class="form-check-label" for="editManageColumns">Управление столбцами</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editManageAdmins" value="manage_admins">
+                                        <label class="form-check-label" for="editManageAdmins">Управление администраторами</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editManageBedLinen" value="manage_bed_linen">
+                                        <label class="form-check-label" for="editManageBedLinen">Управление бельем</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editManageSendMessages" value="manage_send_messages">
+                                        <label class="form-check-label" for="editManageSendMessages">Отправка сообщений</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editViewReports" value="view_reports">
+                                        <label class="form-check-label" for="editViewReports">Просмотр отчетов</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editManageTgUsers" value="manage_tg_users">
+                                        <label class="form-check-label" for="editManageTgUsers">Управление Telegram пользователями</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editScanQr" value="scan_qr">
+                                        <label class="form-check-label" for="editScanQr">Сканер QR-кодов</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editManagePayments" value="manage_payments">
+                                        <label class="form-check-label" for="editManagePayments">Управление оплатами</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editManageRooms" value="manage_rooms">
+                                        <label class="form-check-label" for="editManageRooms">Управление комнатами</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editManageMinors" value="manage_minors">
+                                        <label class="form-check-label" for="editManageMinors">Управление несовершеннолетними</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editManageRoundAssignments" value="manage_round_assignments">
+                                        <label class="form-check-label" for="editManageRoundAssignments">Управление назначениями на обход</label>
+                                    </div>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input perm-checkbox" type="checkbox" id="editManageEvents" value="manage_events">
+                                        <label class="form-check-label" for="editManageEvents">Управление календарем мероприятий</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="editRoleStatus"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-success" id="submitEditRoleBtn">
+                        <i class="bi bi-check-circle"></i> Сохранить
+                    </button>
+                    <button type="button" class="btn btn-danger" id="deleteRoleBtn">
+                        <i class="bi bi-trash"></i> Удалить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/consta-banner.js"></script>
+    <script>
+        const permissionLabels = {
+            'view': 'Просмотр',
+            'edit': 'Редактирование студентов',
+            'delete': 'Удаление студентов',
+            'import': 'Импорт Excel',
+            'manage_columns': 'Управление столбцами',
+            'manage_admins': 'Управление администраторами',
+            'manage_bed_linen': 'Управление бельем',
+            'manage_send_messages': 'Отправка сообщений',
+            'view_reports': 'Просмотр отчетов',
+            'manage_tg_users': 'Управление Telegram пользователями',
+            'scan_qr': 'Сканер QR-кодов',
+            'manage_payments': 'Управление оплатами',
+            'manage_rooms': 'Управление комнатами',
+            'manage_minors': 'Управление несовершеннолетними',
+            'manage_round_assignments': 'Управление назначениями на обход',
+            'manage_events': 'Управление календарем мероприятий',
+            'all': 'Все права'
+        };
+
+
+        async function loadRoles() {
+            try {
+                const response = await fetch('/api/admin/roles');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderRoles(data.roles);
+                } else {
+                    const errorMsg = data.error || 'Ошибка загрузки ролей';
+                    $('#rolesList').html(`<div class="alert alert-danger">${errorMsg}</div>`);
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError(errorMsg, 'Ошибка');
+                    }
+                }
+            } catch (error) {
+                const errorMsg = 'Ошибка загрузки ролей: ' + (error.message || 'Неизвестная ошибка');
+                $('#rolesList').html(`<div class="alert alert-danger">${errorMsg}</div>`);
+                if (typeof showBannerError !== 'undefined') {
+                    showBannerError(errorMsg, 'Ошибка');
+                }
+            }
+        }
+
+        function renderRoles(roles) {
+            const container = $('#rolesList');
+            container.empty();
+
+            if (roles.length === 0) {
+                container.html('<div class="col-12"><div class="alert alert-info">Роли не созданы</div></div>');
+                return;
+            }
+
+            roles.forEach(role => {
+                const permissions = role.permissions || {};
+                const isSystem = role.name === 'super_admin' || role.name === 'admin';
+
+                const permList = Object.keys(permissions).filter(p => 
+                    permissions[p] && p !== 'all' && p !== 'manage_health' && p !== 'manage_vacation'
+                );
+
+                const displayPerms = [...permList];
+                if (permissions.edit && !permissions.all) {
+                    if (!displayPerms.includes('Управление здоровьем')) {
+                        displayPerms.push('Управление здоровьем');
+                    }
+                    if (!displayPerms.includes('Управление отпусками')) {
+                        displayPerms.push('Управление отпусками');
+                    }
+                }
+                
+                const card = $(`
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">${role.name} ${isSystem ? '<span class="badge bg-secondary">Системная</span>' : ''}</h5>
+                                <p class="card-text text-muted">${role.description || 'Нет описания'}</p>
+                                <div class="mb-2">
+                                    <strong>Права:</strong>
+                                    ${permissions.all ? '<span class="badge bg-success">Все права</span>' : 
+                                        permList.length > 0 ? 
+                                            permList.map(p => `<span class="badge bg-primary">${permissionLabels[p] || p}</span>`).join(' ') + 
+                                            (permissions.edit ? ' <span class="badge bg-info">Управление здоровьем</span> <span class="badge bg-info">Управление отпусками</span>' : '') : 
+                                            '<span class="badge bg-secondary">Нет прав</span>'}
+                                </div>
+                                ${!isSystem ? `<button class="btn btn-sm btn-primary" onclick="editRole('${role.name}')">Редактировать</button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `);
+                container.append(card);
+            });
+        }
+
+
+        $('#addAll, #editAll').on('change', function() {
+            const isChecked = $(this).is(':checked');
+            const prefix = $(this).attr('id').includes('add') ? 'add' : 'edit';
+
+            $(`.perm-checkbox:not(:disabled)`).prop('checked', isChecked);
+        });
+
+
+        $('.perm-checkbox').on('change', function() {
+            if ($(this).is(':disabled')) return;
+            const modal = $(this).closest('.modal');
+            const allCheckbox = modal.find('#addAll, #editAll');
+            const prefix = allCheckbox.attr('id').includes('add') ? 'add' : 'edit';
+            const allChecked = modal.find(`.perm-checkbox:not(:checked):not(:disabled)`).length === 0;
+            allCheckbox.prop('checked', allChecked);
+        });
+
+
+        $('#submitAddRoleBtn').on('click', async function() {
+            const name = $('#newRoleName').val().trim();
+            const description = $('#newRoleDescription').val().trim();
+            
+            if (!name) {
+                $('#addRoleStatus').html('<div class="alert alert-danger">Название роли обязательно</div>');
+                return;
+            }
+
+
+            const permissions = {};
+            if ($('#addAll').is(':checked')) {
+                permissions.all = true;
+            } else {
+
+                $('.perm-checkbox:checked:not(:disabled)').each(function() {
+                    permissions[$(this).val()] = true;
+                });
+
+                if (permissions.edit) {
+
+                }
+            }
+
+            $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Создание...');
+            $('#addRoleStatus').html('');
+
+            try {
+                const response = await fetch('/api/admin/roles', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name, permissions, description})
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    $('#addRoleStatus').html('<div class="alert alert-success">Роль успешно создана</div>');
+                    if (typeof showBannerSuccess !== 'undefined') {
+                        showBannerSuccess('Роль успешно создана', 'Успешно');
+                    }
+                    $('#addRoleForm')[0].reset();
+                    setTimeout(() => {
+                        $('#addRoleModal').modal('hide');
+                        loadRoles();
+                    }, 1000);
+                } else {
+                    const errorMsg = data.error || 'Ошибка создания';
+                    $('#addRoleStatus').html(`<div class="alert alert-danger">${errorMsg}</div>`);
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError(errorMsg, 'Ошибка');
+                    }
+                }
+            } catch (error) {
+                const errorMsg = 'Ошибка: ' + (error.message || 'Неизвестная ошибка');
+                $('#addRoleStatus').html(`<div class="alert alert-danger">${errorMsg}</div>`);
+                if (typeof showBannerError !== 'undefined') {
+                    showBannerError(errorMsg, 'Ошибка');
+                }
+            } finally {
+                $(this).prop('disabled', false).html('<i class="bi bi-check-circle"></i> Создать');
+            }
+        });
+
+
+        async function editRole(roleName) {
+            try {
+                const response = await fetch('/api/admin/roles');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const role = data.roles.find(r => r.name === roleName);
+                    if (role) {
+                        const isSystem = role.name === 'super_admin' || role.name === 'admin';
+                        
+                        $('#editRoleName').val(role.name);
+                        $('#editRoleNameDisplay').val(role.name);
+                        $('#editRoleDescription').val(role.description || '');
+                        
+                        const permissions = role.permissions || {};
+                        if (permissions.all) {
+                            $('#editAll').prop('checked', true);
+                            $('.perm-checkbox:not(:disabled)').prop('checked', false);
+                        } else {
+                            $('#editAll').prop('checked', false);
+                            $('.perm-checkbox:not(:disabled)').each(function() {
+                                $(this).prop('checked', permissions[$(this).val()] || false);
+                            });
+                        }
+                        
+                        // Скрываем кнопку удаления для системных ролей
+                        if (isSystem) {
+                            $('#deleteRoleBtn').hide();
+                        } else {
+                            $('#deleteRoleBtn').show();
+                        }
+                        
+                        $('#editRoleModal').modal('show');
+                    }
+                }
+            } catch (error) {
+                const errorMsg = 'Ошибка загрузки роли: ' + (error.message || 'Неизвестная ошибка');
+                if (typeof showBannerError !== 'undefined') {
+                    showBannerError(errorMsg, 'Ошибка');
+                } else {
+                    alert(errorMsg);
+                }
+            }
+        }
+
+        $('#submitEditRoleBtn').on('click', async function() {
+            const roleName = $('#editRoleName').val();
+            const description = $('#editRoleDescription').val().trim();
+            
+
+            const permissions = {};
+            if ($('#editAll').is(':checked')) {
+                permissions.all = true;
+            } else {
+
+                $('.perm-checkbox:checked:not(:disabled)').each(function() {
+                    permissions[$(this).val()] = true;
+                });
+
+                if (permissions.edit) {
+
+                }
+            }
+
+            $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Сохранение...');
+            $('#editRoleStatus').html('');
+
+            try {
+                const response = await fetch(`/api/admin/roles/${roleName}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({permissions, description})
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    $('#editRoleStatus').html('<div class="alert alert-success">Роль успешно обновлена</div>');
+                    if (typeof showBannerSuccess !== 'undefined') {
+                        showBannerSuccess('Роль успешно обновлена', 'Успешно');
+                    }
+                    setTimeout(() => {
+                        $('#editRoleModal').modal('hide');
+                        loadRoles();
+                    }, 1000);
+                } else {
+                    const errorMsg = data.error || 'Ошибка обновления';
+                    $('#editRoleStatus').html(`<div class="alert alert-danger">${errorMsg}</div>`);
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError(errorMsg, 'Ошибка');
+                    }
+                }
+            } catch (error) {
+                const errorMsg = 'Ошибка: ' + (error.message || 'Неизвестная ошибка');
+                $('#editRoleStatus').html(`<div class="alert alert-danger">${errorMsg}</div>`);
+                if (typeof showBannerError !== 'undefined') {
+                    showBannerError(errorMsg, 'Ошибка');
+                }
+            } finally {
+                $(this).prop('disabled', false).html('<i class="bi bi-check-circle"></i> Сохранить');
+            }
+        });
+
+
+
+        // Убеждаемся, что обработчик удаления правильно привязан
+        $(document).on('click', '#deleteRoleBtn', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('Кнопка удаления нажата');
+            
+            const roleName = $('#editRoleName').val();
+            if (!roleName) {
+                const errorMsg = 'Ошибка: Название роли не найдено';
+                console.error('Название роли не найдено');
+                if (typeof showBannerError !== 'undefined') {
+                    showBannerError(errorMsg, 'Ошибка');
+                } else {
+                    alert(errorMsg);
+                }
+                return;
+            }
+            
+            // Проверяем, не является ли роль системной
+            const isSystem = roleName === 'super_admin' || roleName === 'admin';
+            if (isSystem) {
+                const errorMsg = 'Системные роли нельзя удалять';
+                if (typeof showBannerError !== 'undefined') {
+                    showBannerError(errorMsg, 'Ошибка');
+                } else {
+                    alert(errorMsg);
+                }
+                return;
+            }
+            
+            const deleteBtn = $(this);
+            
+            const doDelete = async () => {
+                deleteBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Удаление...');
+
+                try {
+                    const response = await fetch(`/api/admin/roles/${encodeURIComponent(roleName)}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        if (typeof showBannerSuccess !== 'undefined') {
+                            showBannerSuccess('Роль успешно удалена', 'Успешно');
+                        }
+                        $('#editRoleModal').modal('hide');
+                        setTimeout(() => {
+                            loadRoles();
+                        }, 500);
+                    } else {
+                        const errorMsg = data.error || 'Ошибка удаления роли';
+                        if (typeof showBannerError !== 'undefined') {
+                            showBannerError(errorMsg, 'Ошибка');
+                        } else {
+                            alert(errorMsg);
+                        }
+                    }
+                } catch (error) {
+                    const errorMsg = 'Ошибка: ' + (error.message || 'Неизвестная ошибка');
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError(errorMsg, 'Ошибка');
+                    } else {
+                        alert(errorMsg);
+                    }
+                } finally {
+                    deleteBtn.prop('disabled', false).html('<i class="bi bi-trash"></i> Удалить');
+                }
+            };
+            
+            console.log('showBannerConfirm определен:', typeof showBannerConfirm !== 'undefined');
+            console.log('window.showBannerConfirm определен:', typeof window.showBannerConfirm !== 'undefined');
+            
+            if (typeof showBannerConfirm !== 'undefined' || typeof window.showBannerConfirm !== 'undefined') {
+                const confirmFn = showBannerConfirm || window.showBannerConfirm;
+                console.log('Вызываем showBannerConfirm');
+                try {
+                    confirmFn(
+                        'Вы уверены, что хотите удалить эту роль?',
+                        doDelete,
+                        () => {
+                            console.log('Удаление отменено');
+                        }
+                    );
+                } catch (err) {
+                    console.error('Ошибка при вызове showBannerConfirm:', err);
+                    // Fallback на обычный confirm
+                    if (confirm('Вы уверены, что хотите удалить эту роль?')) {
+                        doDelete();
+                    }
+                }
+            } else {
+                console.log('showBannerConfirm не определен, используем confirm');
+                if (confirm('Вы уверены, что хотите удалить эту роль?')) {
+                    doDelete();
+                }
+            }
+        });
+
+        $(document).ready(function() {
+            loadRoles();
+        });
+    </script>
+
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+</body>
+</html>
+

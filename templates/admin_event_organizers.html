@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Организаторы мероприятий</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <style>
+        .table th {
+            white-space: nowrap;
+            font-weight: 600;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+        /* Стили для заголовка в верхнем меню */
+        .top-menu-content {
+            position: relative;
+        }
+        .top-menu-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff !important;
+            font-size: 1.25rem;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .top-menu-item.back-to-panel {
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Организаторы мероприятий</h2>
+        </div>
+    </div>
+    
+    <div class="container mt-4" style="margin-top: 80px !important;">
+        <div class="mb-4">
+            <p class="text-muted">Управление организаторами, которые могут сканировать QR-коды студентов на мероприятиях через Telegram-бот</p>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person-plus"></i> Добавить организатора</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <span class="input-group-text">@</span>
+                            <input type="text" class="form-control" id="newOrganizerUsername" placeholder="Telegram username (без @)">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn w-100" id="addOrganizerBtn" style="background-color: #6ec6a5; border-color: #6ec6a5; color: #ffffff;">
+                            Добавить
+                        </button>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-12">
+                        <small class="form-text text-muted">Организаторы смогут сканировать QR-коды на всех мероприятиях через Telegram-бот</small>
+                    </div>
+                </div>
+                <div id="addOrganizerStatus" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-people"></i> Список организаторов</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Telegram username</th>
+                                <th>ФИО</th>
+                                <th>Добавлен</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="organizersTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Загрузка...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+
+
+    <script>
+        async function loadOrganizers() {
+            try {
+                const response = await fetch('/api/events/organizers');
+                const data = await response.json();
+                
+                const tbody = $('#organizersTableBody');
+                tbody.empty();
+                
+                if (data.success && data.organizers) {
+                    if (data.organizers.length === 0) {
+                        tbody.append('<tr><td colspan="5" class="text-center text-muted">Организаторы не добавлены</td></tr>');
+                        return;
+                    }
+                    
+                    data.organizers.forEach((org, index) => {
+                        const createdDate = new Date(org.created_at).toLocaleDateString('ru-RU');
+                        tbody.append(`
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td><strong>@${escapeHtml(org.tg_username)}</strong></td>
+                                <td>${escapeHtml(org.fio || '—')}</td>
+                                <td>${escapeHtml(createdDate)}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteOrganizer(${org.id}, '${escapeHtml(org.tg_username)}')">
+                                        <i class="bi bi-trash"></i> Удалить
+                                    </button>
+                                </td>
+                            </tr>
+                        `);
+                    });
+                }
+            } catch (error) {
+                
+                $('#organizersTableBody').html('<tr><td colspan="5" class="text-center text-danger">Ошибка загрузки данных</td></tr>');
+            }
+        }
+
+        $('#addOrganizerBtn').on('click', async function() {
+            const username = $('#newOrganizerUsername').val().trim().replace('@', '');
+            
+            if (!username) {
+                $('#addOrganizerStatus').html('<div class="alert alert-warning">Введите Telegram username</div>');
+                return;
+            }
+            
+            $('#addOrganizerBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Добавление...');
+            $('#addOrganizerStatus').html('');
+            
+            try {
+                const response = await fetch('/api/events/organizers', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({tg_username: username})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    $('#addOrganizerStatus').html('<div class="alert alert-success">Организатор успешно добавлен</div>');
+                    $('#newOrganizerUsername').val('');
+                    loadOrganizers();
+                } else {
+                    $('#addOrganizerStatus').html(`<div class="alert alert-danger">${data.error || 'Ошибка добавления'}</div>`);
+                }
+            } catch (error) {
+                $('#addOrganizerStatus').html(`<div class="alert alert-danger">Ошибка: ${error.message}</div>`);
+            } finally {
+                $('#addOrganizerBtn').prop('disabled', false).html('Добавить');
+            }
+        });
+
+        async function deleteOrganizer(id, username) {
+            if (!confirm(`Вы уверены, что хотите удалить организатора @${username}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/events/organizers/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    loadOrganizers();
+                } else {
+                    alert('Ошибка удаления: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            }
+        }
+
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+
+        $('#newOrganizerUsername').on('keypress', function(e) {
+            if (e.which === 13) {
+                $('#addOrganizerBtn').click();
+            }
+        });
+
+
+        $(document).ready(function() {
+            loadOrganizers();
+        });
+    </script>
+</body>
+</html>
+

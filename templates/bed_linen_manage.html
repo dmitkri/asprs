@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Управление получением белья - АСПиРС</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="/static/css/consta-datepicker.css">
+    <link rel="stylesheet" href="/static/css/consta-button.css">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/css/consta-banner.css">
+    <link rel="stylesheet" href="/static/style.css?v=4">
+    <style>
+        /* Разные цвета для статусов постельного белья */
+        .badge.bg-success {
+            background-color: #28a745 !important; /* Зелёный - Активен */
+            color: #ffffff !important;
+        }
+        .badge.bg-info {
+            background-color: #17a2b8 !important; /* Голубой - Запланирован */
+            color: #ffffff !important;
+        }
+        .badge.bg-secondary {
+            background-color: #6c757d !important; /* Серый - Неактивен */
+            color: #ffffff !important;
+        }
+        .badge.bg-dark {
+            background-color: #343a40 !important; /* Тёмно-серый - Завершен */
+            color: #ffffff !important;
+        }
+        /* Стили для кнопки удаления - outline стиль с мягким красным цветом */
+        .delete-date-btn {
+            border-color: #dc3545 !important;
+            color: #dc3545 !important;
+            background-color: transparent !important;
+        }
+        .delete-date-btn:hover {
+            background-color: #dc3545 !important;
+            border-color: #dc3545 !important;
+            color: #ffffff !important;
+        }
+        .delete-date-btn:focus {
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+        .delete-date-btn:active {
+            background-color: #c82333 !important;
+            border-color: #bd2130 !important;
+            color: #ffffff !important;
+        }
+        .top-menu-content {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .top-menu-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff !important;
+            font-size: 1.25rem;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .top-menu-item.back-to-panel {
+            margin-right: auto;
+        }
+    </style>
+</head>
+
+<body>
+    
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Управление получением белья</h2>
+        </div>
+    </div>
+
+    <div class="container mt-4" style="margin-top: 80px !important;">
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Создать период выдачи белья</h5>
+                <p class="text-muted">Укажите даты выдачи постельного белья</p>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="startDateInput" class="form-label">Дата начала <span
+                                class="text-danger">*</span></label>
+                        <input type="text" id="startDateInput" class="form-control consta-datepicker"
+                            placeholder="Выберите дату" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="endDateInput" class="form-label">Дата окончания <span
+                                class="text-danger">*</span></label>
+                        <input type="text" id="endDateInput" class="form-control consta-datepicker"
+                            placeholder="Выберите дату" required>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="button" id="addDateBtn" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Создать период
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Созданные периоды выдачи белья</h5>
+                <div id="datesList" class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Дата начала</th>
+                                <th>Дата окончания</th>
+                                <th>Создан</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="datesTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">Загрузка...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function showStatus(message, type = 'info') {
+            if (typeof showBannerInfo !== 'undefined' && typeof showBannerSuccess !== 'undefined' && typeof showBannerError !== 'undefined' && typeof showBannerWarning !== 'undefined') {
+
+                if (type === 'success') {
+                    showBannerSuccess(message, 'Успешно', [], 5000);
+                } else if (type === 'danger' || type === 'error') {
+                    showBannerError(message, 'Ошибка', [], 7000);
+                } else if (type === 'warning') {
+                    showBannerWarning(message, 'Внимание', [], 6000);
+                } else {
+                    showBannerInfo(message, 'Информация', [], 5000);
+                }
+            } else {
+
+                const status = $('<div id="status" class="alert"></div>');
+                status.removeClass('alert-info alert-success alert-danger alert-warning')
+                    .addClass(`alert-${type}`)
+                    .text(message)
+                    .css('display', 'block')
+                    .prependTo('.container');
+                setTimeout(() => status.fadeOut(() => status.remove()), 10000);
+            }
+        }
+
+
+
+
+        $('#addDateBtn').on('click', function () {
+            const startDate = $('#startDateInput').val();
+            const endDate = $('#endDateInput').val();
+
+            if (!startDate || !endDate) {
+                showStatus('Выберите дату начала и дату окончания', 'warning');
+                return;
+            }
+
+            if (startDate > endDate) {
+                showStatus('Дата начала не может быть позже даты окончания', 'warning');
+                return;
+            }
+
+
+            if (typeof showBannerConfirm !== 'undefined') {
+                showBannerConfirm(
+                    `Вы уверены, что хотите создать период выдачи белья с ${startDate} по ${endDate}?`,
+                    () => {
+
+                        proceedWithCreatePeriod(startDate, endDate);
+                    },
+                    () => {
+
+                    }
+                );
+            } else {
+
+                if (confirm(`Вы уверены, что хотите создать период выдачи белья с ${startDate} по ${endDate}?`)) {
+                    proceedWithCreatePeriod(startDate, endDate);
+                }
+            }
+        });
+
+        function proceedWithCreatePeriod(startDate, endDate) {
+
+            $('#addDateBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Создание...');
+
+            $.ajax({
+                url: '/api/bed_linen/add_date_for_all',
+                method: 'POST',
+                data: JSON.stringify({ start_date: startDate, end_date: endDate }),
+                contentType: 'application/json',
+                success: function (response) {
+                    if (response.success) {
+                        showStatus(response.message || `Период выдачи белья успешно создан!`, 'success');
+                        $('#startDateInput').val('');
+                        $('#endDateInput').val('');
+                        loadDates();
+                    } else {
+                        showStatus(response.message || 'Ошибка при создании периода', 'danger');
+                    }
+                },
+                error: function (xhr) {
+                    let msg = 'Не удалось создать период выдачи белья';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    } else if (xhr.status === 401 || xhr.status === 403) {
+                        msg = 'Ошибка: У вас нет прав для выполнения этого действия';
+                    } else if (xhr.status >= 500) {
+                        msg = 'Ошибка сервера. Попробуйте позже';
+                    }
+                    showStatus(msg, 'danger');
+                },
+                complete: function () {
+                    $('#addDateBtn').prop('disabled', false).html('<i class="bi bi-check-circle"></i> Создать период');
+                }
+            });
+        }
+
+        function loadDates() {
+            $.ajax({
+                url: '/api/bed_linen/list_dates',
+                method: 'GET',
+                success: function (response) {
+                    if (response.success && response.dates) {
+                        const tbody = $('#datesTableBody');
+                        tbody.empty();
+
+                        if (response.dates.length === 0) {
+                            tbody.html('<tr><td colspan="5" class="text-center text-muted">Нет созданных периодов</td></tr>');
+                            return;
+                        }
+
+                        response.dates.forEach(function (periodItem) {
+
+                            const formatDate = (dateStr) => {
+                                if (!dateStr) return dateStr;
+                                const parts = dateStr.split('-');
+                                if (parts.length === 3) {
+                                    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+                                }
+                                return dateStr;
+                            };
+
+                            const row = $(`
+                                <tr>
+                                    <td>${formatDate(periodItem.start_date)}</td>
+                                    <td>${formatDate(periodItem.end_date)}</td>
+                                    <td>${new Date(periodItem.created_at).toLocaleString('ru-RU')}</td>
+                                    <td>
+                                        <span class="badge ${periodItem.status_class || (periodItem.is_active ? 'bg-success' : 'bg-secondary')}">
+                                            ${periodItem.status || (periodItem.is_active ? 'Активен' : 'Неактивен')}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger delete-date-btn" data-id="${periodItem.id}">
+                                            <i class="bi bi-trash"></i> Удалить
+                                        </button>
+                                    </td>
+                                </tr>
+                            `);
+                            tbody.append(row);
+                        });
+
+
+                        $('.delete-date-btn').on('click', function () {
+                            const dateId = $(this).data('id');
+                            const button = $(this);
+                            
+                            if (typeof showBannerConfirm !== 'undefined') {
+                                showBannerConfirm(
+                                    'Вы уверены, что хотите удалить эту дату?',
+                                    () => {
+
+                                        deleteDate(dateId, button);
+                                    },
+                                    () => {
+
+                                    }
+                                );
+                            } else {
+
+                                if (confirm('Вы уверены, что хотите удалить эту дату?')) {
+                                    deleteDate(dateId, button);
+                                }
+                            }
+                        });
+                    }
+                },
+                error: function () {
+                    $('#datesTableBody').html('<tr><td colspan="5" class="text-center text-danger">Ошибка загрузки периодов</td></tr>');
+                }
+            });
+        }
+
+        function deleteDate(dateId, button) {
+            $.ajax({
+                url: `/api/bed_linen/delete_date/${dateId}`,
+                method: 'DELETE',
+                success: function (response) {
+                    if (response.success) {
+                        showStatus('Дата успешно удалена', 'success');
+                        loadDates();
+                    } else {
+                        showStatus(response.message || 'Ошибка при удалении', 'danger');
+                    }
+                },
+                error: function (xhr) {
+                    showStatus('Не удалось удалить дату', 'danger');
+                }
+            });
+        }
+
+
+        loadDates();
+
+
+        $(document).ready(function () {
+
+            if (typeof flatpickr !== 'undefined') {
+                const fpConfig = {
+                    locale: 'ru',
+                    dateFormat: 'Y-m-d',
+                    altInput: true,
+                    altFormat: 'd.m.Y',
+                    allowInput: false,
+                    disableMobile: true
+                };
+
+                flatpickr('#startDateInput', {
+                    ...fpConfig,
+                    defaultDate: new Date(),
+                    onChange: function (selectedDates, dateStr, instance) {
+
+                        const endPicker = document.querySelector('#endDateInput')._flatpickr;
+                        if (endPicker) {
+                            endPicker.set('minDate', dateStr);
+                        }
+                    }
+                });
+
+                flatpickr('#endDateInput', {
+                    ...fpConfig,
+                    defaultDate: new Date(),
+                    minDate: new Date()
+                });
+            }
+        });
+    </script>
+
+    
+    <script src="/static/js/consta-banner.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+    <script src="/static/js/consta-datepicker.js"></script>
+
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+</body>
+
+</html>

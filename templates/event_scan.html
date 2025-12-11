@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Сканер QR-кодов мероприятия - АСПиРС</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <script src="/static/html5-qrcode.min.js"></script>
+    <style>
+        /* Стили для заголовка в верхнем меню */
+        .top-menu-content {
+            position: relative;
+        }
+        .top-menu-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff !important;
+            font-size: 1.25rem;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .top-menu-item.back-to-panel {
+            margin-right: auto;
+        }
+        #startScanBtn {
+            white-space: nowrap;
+            background-color: #6ec6a5 !important;
+            border-color: #6ec6a5 !important;
+            color: #ffffff !important;
+        }
+        #startScanBtn:hover:not(:disabled) {
+            background-color: #5bb493 !important;
+            border-color: #5bb493 !important;
+            color: #ffffff !important;
+        }
+        #startScanBtn:active:not(:disabled) {
+            background-color: #4da183 !important;
+            border-color: #4da183 !important;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/events/calendar" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад к календарю</span>
+            </a>
+            <h2 class="top-menu-title">Сканер QR-кодов мероприятия</h2>
+        </div>
+    </div>
+    
+    <div class="container mt-4" style="margin-top: 80px !important;">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Информация о мероприятии</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Мероприятие:</strong> {{ event.description }}</p>
+                <p><strong>Дата:</strong> {{ event.event_date }} {{ event.event_time }}</p>
+                <p><strong>Место:</strong> {{ event.location }}</p>
+                <p><strong>Организатор:</strong> {{ event.admin_fio }}{% if event.coauthor_fio %}, {{ event.coauthor_fio }}{% endif %}</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <p class="lead">Используйте сканер для отметки присутствующих студентов на мероприятии.</p>
+                
+                <div class="mb-3">
+                    <label for="cameraSelect" class="form-label">Выберите камеру:</label>
+                    <div class="d-flex gap-2">
+                        <select id="cameraSelect" class="form-select flex-grow-1"></select>
+                        <button id="startScanBtn" class="btn btn-success">Запустить сканер</button>
+                    </div>
+                </div>
+                
+                <div id="qr-reader" class="mb-3" style="width: 100%; max-width: 400px; margin: 0 auto; display: none;"></div>
+                
+                <div id="status" class="alert alert-info" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const status = document.getElementById('status');
+        const cameraSelect = document.getElementById('cameraSelect');
+        let html5QrCode;
+        let currentCameraId;
+        let isProcessing = false;
+        const eventId = {{ event.id }};
+
+        function playSuccessSound() {
+
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        }
+
+        function playErrorSound() {
+
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.3);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        function showStatus(message, type = 'info') {
+            status.className = `alert alert-${type}`;
+            status.innerText = message;
+            status.style.display = 'block';
+            $(status).fadeIn();
+        }
+
+        async function sendScan(qr_code) {
+            showStatus('Отправка...', 'info');
+
+            try {
+                const res = await fetch(`/api/events/${eventId}/scan_qr`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ qr_code: qr_code })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.success) {
+                    playSuccessSound();
+                    showStatus(`✅ ${data.message || 'Успешно'}\n👤 ${data.student_fio || ''}`, 'success');
+                    setTimeout(() => {
+                        if ($('#status').hasClass('alert-success')) {
+                            $('#status').fadeOut();
+                        }
+                    }, 3000);
+                } else {
+                    playErrorSound();
+                    showStatus(`❌ ${data.error || 'Ошибка'}`, 'danger');
+                    setTimeout(() => {
+                        if ($('#status').hasClass('alert-danger')) {
+                            $('#status').fadeOut();
+                        }
+                    }, 3000);
+                }
+            } catch (e) {
+                
+                playErrorSound();
+                showStatus('Ошибка запроса: ' + e.message, 'danger');
+                setTimeout(() => {
+                    if ($('#status').hasClass('alert-danger')) {
+                        $('#status').fadeOut();
+                    }
+                }, 3000);
+            }
+        }
+
+        function startScanner(cameraId) {
+            if (html5QrCode) {
+                html5QrCode.stop().catch(() => {});
+            }
+            
+            isProcessing = false;
+
+            html5QrCode = new Html5Qrcode("qr-reader");
+            
+            html5QrCode.start(
+                cameraId,
+                {
+                    fps: 20,
+                    qrbox: { width: 300, height: 300 },
+                    aspectRatio: 1.0,
+                    disableFlip: false
+                },
+                async qrCodeMessage => {
+                    if (isProcessing) {
+                        return;
+                    }
+                    isProcessing = true;
+                    
+                    await sendScan(qrCodeMessage);
+                    
+                    setTimeout(() => {
+                        isProcessing = false;
+                    }, 2000);
+                },
+                errorMessage => {
+                    if (errorMessage && 
+                        !errorMessage.includes("No barcode") && 
+                        !errorMessage.includes("No QR code") &&
+                        !errorMessage.includes("No MultiFormat")) {
+                        
+                    }
+                }
+            ).catch(err => {
+                
+                showStatus('Ошибка камеры. Попробуйте другую или ручной ввод.', 'warning');
+                $('#startScanBtn').prop('disabled', false).html('Запустить сканер');
+            });
+        }
+
+
+        Html5Qrcode.getCameras().then(cameras => {
+            if (cameras && cameras.length) {
+                cameras.forEach(cam => {
+                    const option = document.createElement('option');
+                    option.value = cam.id;
+                    option.text = cam.label || cam.id;
+                    cameraSelect.appendChild(option);
+                });
+                const backCamera = cameras.find(cam =>
+                    /back|Задняя|rear|environment/i.test(cam.label)
+                );
+                currentCameraId = backCamera ? backCamera.id : cameras[0].id;
+                cameraSelect.value = currentCameraId;
+            } else {
+                showStatus('Камеры не найдены. Используйте ручной ввод.', 'warning');
+            }
+        }).catch(err => {
+            
+            showStatus('Ошибка доступа к камере. Используйте ручной ввод.', 'warning');
+        });
+
+        cameraSelect.onchange = () => {
+            if (html5QrCode) {
+                html5QrCode.stop().catch(() => {});
+            }
+            isProcessing = false;
+            currentCameraId = cameraSelect.value;
+            $('#startScanBtn').prop('disabled', false).html('<i class="bi bi-camera"></i> Запустить сканер');
+        };
+
+
+        $(document).on('click', '#startScanBtn', function() {
+            const btn = $(this);
+            
+            if (btn.text().includes('Остановить')) {
+                if (html5QrCode) {
+                    html5QrCode.stop().catch(() => {});
+                }
+                isProcessing = false;
+                $('#qr-reader').hide();
+                btn.prop('disabled', false).html('Запустить сканер');
+                return;
+            }
+            
+            if (currentCameraId) {
+                $('#qr-reader').show();
+                startScanner(currentCameraId);
+                btn.prop('disabled', false).html('Остановить сканер');
+            } else {
+                showStatus('Выберите камеру', 'warning');
+            }
+        });
+
+    </script>
+    
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+</body>
+</html>
+
+
+
+
+

@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Управление комнатами</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/consta-dragndrop.css">
+    <link rel="stylesheet" href="/static/css/consta-banner.css">
+    <link rel="stylesheet" href="/static/css/consta-button.css">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/style.css?v=4">
+    <style>
+        .room-row:hover {
+            background-color: #f8f9fa;
+        }
+        .table th {
+            white-space: nowrap;
+            font-weight: 600;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+        .table-responsive {
+            max-height: calc(100vh - 250px);
+            overflow-y: auto;
+        }
+        /* Стили для заголовка в верхнем меню */
+        .top-menu-content {
+            position: relative;
+        }
+        .top-menu-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff !important;
+            font-size: 1.25rem;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .top-menu-item.back-to-panel {
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Управление комнатами</h2>
+            <button class="top-menu-item" data-bs-toggle="modal" data-bs-target="#importRoomsModal">
+                <i class="bi bi-file-earmark-excel"></i>
+                <span>Импорт из Excel</span>
+            </button>
+            <button class="top-menu-item" data-bs-toggle="modal" data-bs-target="#importRoomsWithFioModal">
+                <i class="bi bi-file-earmark-excel"></i>
+                <span>Импорт с ФИО</span>
+            </button>
+            <button class="top-menu-item" data-bs-toggle="modal" data-bs-target="#manageCategoriesModal">
+                <i class="bi bi-tags"></i>
+                <span>Категории проживания</span>
+            </button>
+        </div>
+    </div>
+    
+    <div class="container mt-4" style="margin-top: 80px !important;">
+        <div class="mb-4">
+            <p class="text-muted">Добавляйте и редактируйте комнаты с указанием количества мест для расчета стоимости проживания</p>
+        </div>
+
+        <div class="mb-3 row">
+            <div class="col-md-10">
+                <input type="text" id="searchRooms" class="form-control" placeholder="Поиск по корпусу, подъезду, номеру комнаты...">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100" id="refreshBtn">
+                    <i class="bi bi-arrow-clockwise"></i> Обновить
+                </button>
+            </div>
+        </div>
+
+        <div class="row" id="roomsList">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-center py-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="editRoomModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Редактировать комнату</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editRoomForm">
+                        <input type="hidden" id="editRoomId">
+                        <div class="mb-3">
+                            <label for="editRoomBuilding" class="form-label">Корпус</label>
+                            <input type="text" class="form-control" id="editRoomBuilding" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editRoomEntrance" class="form-label">Подъезд</label>
+                            <input type="text" class="form-control" id="editRoomEntrance" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editRoomFloor" class="form-label">Этаж</label>
+                            <input type="number" class="form-control" id="editRoomFloor" min="1" max="20">
+                            <small class="form-text text-muted">Необязательное поле</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editRoomNumber" class="form-label">Номер комнаты</label>
+                            <input type="text" class="form-control" id="editRoomNumber" required>
+                        </div>
+                        <div class="mb-3">
+                            <div class="alert alert-info">
+                                <small>Количество мест в комнате определяется категорией проживания</small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editRoomCategory" class="form-label">Категория проживания</label>
+                            <select class="form-select" id="editRoomCategory">
+                                <option value="">Не выбрано</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editRoomExcludedFromDuty">
+                                <label class="form-check-label" for="editRoomExcludedFromDuty">
+                                    Исключить из дежурств
+                                </label>
+                                <small class="form-text text-muted d-block">Комнаты, отмеченные этим флагом, не будут включены в график дежурств</small>
+                            </div>
+                        </div>
+                        <div id="editRoomStatus"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-success" id="submitEditRoomBtn">
+                        <i class="bi bi-check-circle"></i> Сохранить
+                    </button>
+                    <button type="button" class="btn btn-danger" id="deleteRoomBtn">
+                        <i class="bi bi-trash"></i> Удалить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="importRoomsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Импорт комнат из Excel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>Формат файла:</strong><br>
+                        В файле должны быть три столбца:<br>
+                        1. <strong>"Комната"</strong> - номер комнаты в формате <strong>"81059"</strong> (корпус-комната).<br>
+                        2. <strong>"Подъезд"</strong> - нужно указать в отдельном столбце.<br>
+                        3. <strong>"Категория проживания"</strong> - название категории. Количество мест в комнате определяется категорией (max_occupants).
+                    </div>
+                    <form id="importRoomsForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <div class="consta-dragndrop-container">
+                                <input type="file" id="roomsExcelFile" accept=".xlsx,.xls" required>
+                            </div>
+                            <small class="form-text text-muted mt-2 d-block">
+                                Поддерживаемые форматы: .xlsx, .xls
+                            </small>
+                        </div>
+                        <div id="importRoomsStatus"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="submitImportRoomsBtn">
+                        <i class="bi bi-upload"></i> Импортировать
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="importRoomsWithFioModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Импорт комнат из Excel с ФИО</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>Формат файла:</strong><br>
+                        В файле должны быть три столбца:<br>
+                        1. <strong>"Комната"</strong> - номер комнаты в формате <strong>"81059"</strong> (корпус-комната).<br>
+                        2. <strong>"Подъезд"</strong> - нужно указать в отдельном столбце.<br>
+                        3. <strong>"ФИО"</strong> - полное имя студента (должно совпадать с ФИО в базе данных)<br>
+                        Система автоматически создаст/обновит комнаты и привяжет студентов к комнатам по ФИО.
+                    </div>
+                    <form id="importRoomsWithFioForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <div class="consta-dragndrop-container">
+                                <input type="file" id="roomsWithFioExcelFile" accept=".xlsx,.xls" required>
+                            </div>
+                            <small class="form-text text-muted mt-2 d-block">
+                                Поддерживаемые форматы: .xlsx, .xls
+                            </small>
+                        </div>
+                        <div id="importRoomsWithFioStatus"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="submitImportRoomsWithFioBtn">
+                        <i class="bi bi-upload"></i> Импортировать
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="manageCategoriesModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Управление категориями проживания</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <button class="btn btn-success" id="addCategoryBtn">
+                            <i class="bi bi-plus-circle"></i> Добавить категорию
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Название</th>
+                                    <th>Макс. проживающих</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoriesTableBody">
+                                <tr>
+                                    <td colspan="3" class="text-center">
+                                        <div class="spinner-border spinner-border-sm" role="status">
+                                            <span class="visually-hidden">Загрузка...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="categoryStatus"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="categoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="categoryModalTitle">Добавить категорию</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="categoryForm">
+                        <input type="hidden" id="categoryId">
+                        <div class="mb-3">
+                            <label for="categoryName" class="form-label">Название категории *</label>
+                            <input type="text" class="form-control" id="categoryName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="categoryMaxOccupants" class="form-label">Сколько может проживать *</label>
+                            <input type="number" class="form-control" id="categoryMaxOccupants" min="1" max="4" value="1" required>
+                            <small class="form-text text-muted">Максимум 4 человека</small>
+                        </div>
+                        <div id="categoryFormStatus"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="submitCategoryBtn">
+                        <i class="bi bi-check-circle"></i> Сохранить
+                    </button>
+                    <button type="button" class="btn btn-danger" id="deleteCategoryBtn" style="display: none;">
+                        <i class="bi bi-trash"></i> Удалить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/consta-dragndrop.js"></script>
+    <script>
+        let categories = [];
+        
+
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/admin/room_categories');
+                const data = await response.json();
+                
+                if (data.success) {
+                    categories = data.categories;
+                    updateCategorySelects();
+                    // Всегда обновляем таблицу, если модальное окно открыто или будет открыто
+                    const modal = $('#manageCategoriesModal');
+                    if (modal.length && (modal.hasClass('show') || modal.data('bs.modal'))) {
+                        renderCategories();
+                    }
+                } else {
+                    // Если ошибка, показываем сообщение в таблице
+                    const tbody = $('#categoriesTableBody');
+                    if (tbody.length) {
+                        tbody.html('<tr><td colspan="3" class="text-center text-danger">Ошибка загрузки категорий</td></tr>');
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки категорий:', error);
+                const tbody = $('#categoriesTableBody');
+                if (tbody.length) {
+                    tbody.html('<tr><td colspan="3" class="text-center text-danger">Ошибка загрузки категорий</td></tr>');
+                }
+            }
+        }
+        
+        function updateCategorySelects() {
+            const selects = ['#editRoomCategory'];
+            selects.forEach(selectId => {
+                const select = $(selectId);
+                select.empty();
+                select.append('<option value="">Не выбрано</option>');
+                categories.forEach(cat => {
+                    select.append(`<option value="${cat.id}">${cat.name}</option>`);
+                });
+            });
+        }
+        
+        function renderCategories() {
+            const tbody = $('#categoriesTableBody');
+            tbody.empty();
+            
+            if (categories.length === 0) {
+                tbody.append('<tr><td colspan="3" class="text-center text-muted">Категории не добавлены</td></tr>');
+                return;
+            }
+            
+            categories.forEach(cat => {
+                tbody.append(`
+                    <tr>
+                        <td><strong>${escapeHtml(cat.name)}</strong></td>
+                        <td><span class="badge bg-primary">${cat.max_occupants || 1}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="editCategory(${cat.id})">
+                                <i class="bi bi-pencil"></i> Редактировать
+                            </button>
+                        </td>
+                    </tr>
+                `);
+            });
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function editCategory(categoryId) {
+            const category = categories.find(c => c.id === categoryId);
+            if (!category) return;
+            
+            $('#categoryId').val(category.id);
+            $('#categoryName').val(category.name);
+            $('#categoryMaxOccupants').val(category.max_occupants || 1);
+            $('#categoryModalTitle').text('Редактировать категорию');
+            $('#deleteCategoryBtn').show();
+            $('#categoryFormStatus').html('');
+            $('#categoryModal').modal('show');
+        }
+        
+
+        async function loadRooms() {
+            try {
+                const response = await fetch('/api/admin/rooms');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderRooms(data.rooms);
+                } else {
+                    $('#roomsList').html('<div class="col-12"><div class="alert alert-danger">Ошибка загрузки комнат</div></div>');
+                }
+            } catch (error) {
+                
+                $('#roomsList').html('<div class="col-12"><div class="alert alert-danger">Ошибка загрузки комнат</div></div>');
+            }
+        }
+
+        function renderRooms(rooms) {
+            const container = $('#roomsList');
+            container.empty();
+
+            if (rooms.length === 0) {
+                container.html('<div class="col-12"><div class="alert alert-info">Комнаты не добавлены</div></div>');
+                return;
+            }
+
+
+            rooms.sort((a, b) => {
+                if (a.building !== b.building) return a.building.localeCompare(b.building);
+                if (a.entrance !== b.entrance) return a.entrance.localeCompare(b.entrance);
+                const aNum = parseInt(a.room_number) || 0;
+                const bNum = parseInt(b.room_number) || 0;
+                return aNum - bNum;
+            });
+
+
+            let tableHtml = `
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Комната</th>
+                                            <th>Категория</th>
+                                            <th>Мест</th>
+                                            <th>Проживает</th>
+                                            <th>Студенты</th>
+                                            <th>Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="roomsTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.html(tableHtml);
+
+            const tbody = $('#roomsTableBody');
+            
+            rooms.forEach(room => {
+                let studentsListHtml = '';
+                if (room.students && room.students.length > 0) {
+                    studentsListHtml = '<div class="small">';
+                    room.students.forEach((student) => {
+                        studentsListHtml += `<div>${escapeHtml(student.fio)}</div>`;
+                    });
+                    studentsListHtml += '</div>';
+                } else {
+                    studentsListHtml = '<span class="text-muted">-</span>';
+                }
+                
+                const roomDisplay = [room.building, room.entrance, room.room_number].filter(Boolean).join('-') || '-';
+                const categoryBadge = room.category_name ? `<span class="badge bg-secondary">${escapeHtml(room.category_name)}</span>` : '<span class="text-muted">-</span>';
+                const row = $(`
+                    <tr class="room-row" data-building="${room.building}" data-entrance="${room.entrance}" data-number="${room.room_number}">
+                        <td><strong>${roomDisplay}</strong></td>
+                        <td>${categoryBadge}</td>
+                        <td><span class="badge bg-primary">${room.capacity}</span></td>
+                        <td><span class="badge bg-info">${room.students_count}</span></td>
+                        <td>${studentsListHtml}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="editRoom(${room.id}, '${room.building}', '${room.entrance}', ${room.floor || 'null'}, '${room.room_number}', ${room.max_occupants || room.capacity || 1}, ${room.excluded_from_duty || 0}, ${room.category_id || 'null'})">
+                                <i class="bi bi-pencil"></i> Редактировать
+                            </button>
+                        </td>
+                    </tr>
+                `);
+                tbody.append(row);
+            });
+        }
+
+
+        $('#searchRooms').on('input', function() {
+            const search = $(this).val().toLowerCase();
+            $('.room-row').each(function() {
+                const building = $(this).data('building') || '';
+                const entrance = $(this).data('entrance') || '';
+                const number = $(this).data('number') || '';
+                const text = `${building} ${entrance} ${number}`.toLowerCase();
+                
+                if (text.includes(search)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
+
+
+        function editRoom(id, building, entrance, floor, room_number, max_occupants, excluded_from_duty, category_id) {
+            $('#editRoomId').val(id);
+            $('#editRoomBuilding').val(building);
+            $('#editRoomEntrance').val(entrance);
+            $('#editRoomFloor').val(floor || '');
+            $('#editRoomNumber').val(room_number);
+
+            $('#editRoomExcludedFromDuty').prop('checked', excluded_from_duty == 1);
+            $('#editRoomCategory').val(category_id || '');
+            $('#editRoomStatus').html('');
+            $('#editRoomModal').modal('show');
+        }
+
+        $('#submitEditRoomBtn').on('click', async function() {
+            const room_id = $('#editRoomId').val();
+            const building = $('#editRoomBuilding').val().trim();
+            const entrance = $('#editRoomEntrance').val().trim();
+            const room_number = $('#editRoomNumber').val().trim();
+            const floor = $('#editRoomFloor').val() ? parseInt($('#editRoomFloor').val()) : null;
+            const excluded_from_duty = $('#editRoomExcludedFromDuty').is(':checked');
+            const category_id = $('#editRoomCategory').val() || null;
+
+            if (!building || !entrance || !room_number) {
+                $('#editRoomStatus').html('<div class="alert alert-danger">Заполните все обязательные поля</div>');
+                return;
+            }
+            
+
+
+            $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Сохранение...');
+            $('#editRoomStatus').html('');
+
+            try {
+                const response = await fetch(`/api/admin/rooms/${room_id}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({building, entrance, floor, room_number, excluded_from_duty, category_id})
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    $('#editRoomStatus').html('<div class="alert alert-success">Комната успешно обновлена</div>');
+                    setTimeout(() => {
+                        $('#editRoomModal').modal('hide');
+                        loadRooms();
+                    }, 1000);
+                } else {
+                    $('#editRoomStatus').html(`<div class="alert alert-danger">${data.error || 'Ошибка обновления'}</div>`);
+                }
+            } catch (error) {
+                $('#editRoomStatus').html(`<div class="alert alert-danger">Ошибка: ${error.message}</div>`);
+            } finally {
+                $(this).prop('disabled', false).html('<i class="bi bi-check-circle"></i> Сохранить');
+            }
+        });
+
+
+        $('#deleteRoomBtn').on('click', async function() {
+            if (!confirm('Вы уверены, что хотите удалить эту комнату? Это действие можно отменить.')) {
+                return;
+            }
+
+            const room_id = $('#editRoomId').val();
+            $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Удаление...');
+
+            try {
+                const response = await fetch(`/api/admin/rooms/${room_id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    $('#editRoomModal').modal('hide');
+                    loadRooms();
+                } else {
+                    alert(data.error || 'Ошибка удаления комнаты');
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            } finally {
+                $(this).prop('disabled', false).html('<i class="bi bi-trash"></i> Удалить');
+            }
+        });
+
+        $('#refreshBtn').on('click', function() {
+            loadRooms();
+        });
+
+
+        $('#submitImportRoomsBtn').on('click', function() {
+            const fileInput = $('#roomsExcelFile')[0];
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                $('#importRoomsStatus').html('<div class="alert alert-warning">Добавьте файл</div>');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            $('#submitImportRoomsBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Импорт...');
+            $('#importRoomsStatus').html('');
+            
+            $.ajax({
+                url: '/api/admin/rooms/import_excel',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        let message = `<div class="alert alert-success">
+                            <strong>Импорт завершен!</strong><br>
+                            Создано комнат: ${response.created}<br>
+                            Обновлено комнат: ${response.updated}<br>
+                            Всего обработано: ${response.total_rooms}
+                        </div>`;
+                        
+                        if (response.errors && response.errors.length > 0) {
+                            message += `<div class="alert alert-warning">
+                                <strong>Ошибки (${response.errors.length}):</strong><br>
+                                ${response.errors.slice(0, 10).join('<br>')}
+                                ${response.errors_count ? `<br>... и еще ${response.errors_count - 10} ошибок` : ''}
+                            </div>`;
+                        }
+                        
+                        $('#importRoomsStatus').html(message);
+                        
+
+                        setTimeout(function() {
+                            loadRooms();
+                            $('#importRoomsModal').modal('hide');
+                            $('#importRoomsForm')[0].reset();
+                            $('#importRoomsStatus').html('');
+                        }, 2000);
+                    } else {
+                        $('#importRoomsStatus').html(`<div class="alert alert-danger">${response.error || 'Ошибка импорта'}</div>`);
+                    }
+                },
+                error: function(xhr) {
+                    let errorMsg = 'Ошибка при импорте';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMsg = xhr.responseJSON.error;
+                    }
+                    $('#importRoomsStatus').html(`<div class="alert alert-danger">${errorMsg}</div>`);
+                },
+                complete: function() {
+                    $('#submitImportRoomsBtn').prop('disabled', false).html('<i class="bi bi-upload"></i> Импортировать');
+                }
+            });
+        });
+
+
+        $('#submitImportRoomsWithFioBtn').on('click', function() {
+            const fileInput = $('#roomsWithFioExcelFile')[0];
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                $('#importRoomsWithFioStatus').html('<div class="alert alert-warning">Добавьте файл</div>');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            $('#submitImportRoomsWithFioBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Импорт...');
+            $('#importRoomsWithFioStatus').html('');
+            
+            $.ajax({
+                url: '/api/admin/rooms/import_excel_with_fio',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        let message = `<div class="alert alert-success">
+                            <strong>Импорт завершен!</strong><br>
+                            Создано комнат: ${response.rooms_created}<br>
+                            Обновлено комнат: ${response.rooms_updated}<br>
+                            Обновлено студентов: ${response.students_updated}<br>
+                        </div>`;
+                        
+                        if (response.students_not_found_count > 0) {
+                            message += `<div class="alert alert-warning">
+                                <strong>Студенты не найдены (${response.students_not_found_count}):</strong><br>
+                                ${response.students_not_found ? response.students_not_found.slice(0, 10).join('<br>') : ''}
+                                ${response.students_not_found_count > 10 ? `<br>... и еще ${response.students_not_found_count - 10} студентов` : ''}
+                                <br><small>Убедитесь, что ФИО в файле точно совпадает с ФИО в базе данных</small>
+                            </div>`;
+                        }
+                        
+                        if (response.errors && response.errors.length > 0) {
+                            message += `<div class="alert alert-warning">
+                                <strong>Ошибки (${response.errors.length}):</strong><br>
+                                ${response.errors.slice(0, 10).join('<br>')}
+                                ${response.errors_count ? `<br>... и еще ${response.errors_count - 10} ошибок` : ''}
+                            </div>`;
+                        }
+                        
+                        $('#importRoomsWithFioStatus').html(message);
+                        
+
+                        setTimeout(function() {
+                            loadRooms();
+                            $('#importRoomsWithFioModal').modal('hide');
+                            $('#importRoomsWithFioForm')[0].reset();
+                            $('#importRoomsWithFioStatus').html('');
+                        }, 2000);
+                    } else {
+                        $('#importRoomsWithFioStatus').html(`<div class="alert alert-danger">${response.error || 'Ошибка импорта'}</div>`);
+                    }
+                },
+                error: function(xhr) {
+                    let errorMsg = 'Ошибка при импорте';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMsg = xhr.responseJSON.error;
+                    }
+                    $('#importRoomsWithFioStatus').html(`<div class="alert alert-danger">${errorMsg}</div>`);
+                },
+                complete: function() {
+                    $('#submitImportRoomsWithFioBtn').prop('disabled', false).html('<i class="bi bi-upload"></i> Импортировать');
+                }
+            });
+        });
+
+
+        $('#addCategoryBtn').on('click', function() {
+            $('#categoryId').val('');
+            $('#categoryName').val('');
+            $('#categoryMaxOccupants').val(1);
+            $('#categoryModalTitle').text('Добавить категорию');
+            $('#deleteCategoryBtn').hide();
+            $('#categoryFormStatus').html('');
+            $('#categoryModal').modal('show');
+        });
+        
+        $('#submitCategoryBtn').on('click', async function() {
+            const categoryId = $('#categoryId').val();
+            const name = $('#categoryName').val().trim();
+            const maxOccupants = parseInt($('#categoryMaxOccupants').val()) || 1;
+            
+            if (!name) {
+                $('#categoryFormStatus').html('<div class="alert alert-danger">Название категории обязательно</div>');
+                return;
+            }
+            
+            if (maxOccupants < 1 || maxOccupants > 4) {
+                $('#categoryFormStatus').html('<div class="alert alert-danger">Количество проживающих должно быть от 1 до 4</div>');
+                return;
+            }
+            
+            $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Сохранение...');
+            $('#categoryFormStatus').html('');
+            
+            try {
+                const url = categoryId ? `/api/admin/room_categories/${categoryId}` : '/api/admin/room_categories';
+                const method = 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name, max_occupants: maxOccupants})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    $('#categoryFormStatus').html('<div class="alert alert-success">Категория успешно сохранена</div>');
+                    setTimeout(() => {
+                        $('#categoryModal').modal('hide');
+                        loadCategories();
+                        loadRooms();
+                    }, 1000);
+                } else {
+                    $('#categoryFormStatus').html(`<div class="alert alert-danger">${data.error || 'Ошибка сохранения'}</div>`);
+                }
+            } catch (error) {
+                $('#categoryFormStatus').html(`<div class="alert alert-danger">Ошибка: ${error.message}</div>`);
+            } finally {
+                $(this).prop('disabled', false).html('<i class="bi bi-check-circle"></i> Сохранить');
+            }
+        });
+        
+        $('#deleteCategoryBtn').on('click', async function() {
+            if (!confirm('Вы уверены, что хотите удалить эту категорию?')) {
+                return;
+            }
+            
+            const categoryId = $('#categoryId').val();
+            $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Удаление...');
+            
+            try {
+                const response = await fetch(`/api/admin/room_categories/${categoryId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    $('#categoryModal').modal('hide');
+                    loadCategories();
+                    loadRooms();
+                } else {
+                    alert(data.error || 'Ошибка удаления категории');
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            } finally {
+                $(this).prop('disabled', false).html('<i class="bi bi-trash"></i> Удалить');
+            }
+        });
+        
+        $('#manageCategoriesModal').on('show.bs.modal', function() {
+            // Загружаем категории при открытии модального окна
+            loadCategories();
+        });
+        
+        $('#manageCategoriesModal').on('shown.bs.modal', function() {
+            // После полного открытия модального окна обязательно отображаем таблицу
+            renderCategories();
+        });
+        
+        $(document).ready(function() {
+            loadCategories();
+            loadRooms();
+        });
+    </script>
+    
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+</body>
+</html>
+

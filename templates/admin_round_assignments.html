@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Назначения на обход</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/consta-userselect.css">
+    <link rel="stylesheet" href="/static/css/consta-banner.css">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <style>
+        .assignment-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .chief-badge {
+            background-color: #0d6efd;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Назначения студентов на обход подъездов</h2>
+            <button class="top-menu-item" data-bs-toggle="modal" data-bs-target="#manageRoundsModal">
+                <i class="bi bi-gear"></i>
+                <span>Управление правом обхода</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="container mt-4" style="margin-top: 80px !important;">
+        
+        {% if admin_role == 'super_admin' %}
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Старшие студенты</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#selectChiefModal">
+                            <i class="bi bi-person-plus"></i> Назначить старшего
+                        </button>
+                        <div id="chiefsList"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Старосты подъездов</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#selectElderModal">
+                            <i class="bi bi-person-plus"></i> Назначить старосту
+                        </button>
+                        <div id="eldersList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-3">
+            <i class="bi bi-info-circle"></i> Назначение главных студентов и старост подъездов доступно только суперадмину.
+        </div>
+        {% endif %}
+
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Назначения на подъезды</h5>
+                        <div>
+                            <button class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#restrictionsModal">
+                                <i class="bi bi-shield-exclamation"></i> Ограничения
+                            </button>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#generateScheduleModal">
+                                <i class="bi bi-magic"></i> Сгенерировать график
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="filterBuilding" class="form-label">Фильтр по корпусу:</label>
+                                <select id="filterBuilding" class="form-select" onchange="loadAssignments()">
+                                    <option value="">Все корпуса</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="filterEntrance" class="form-label">Фильтр по подъезду:</label>
+                                <select id="filterEntrance" class="form-select" onchange="loadAssignments()">
+                                    <option value="">Все подъезды</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#assignModal">
+                                    <i class="bi bi-plus-circle"></i> Назначить студента
+                                </button>
+                            </div>
+                        </div>
+                        <div id="assignmentsList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="selectChiefModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Выбрать старшего студента</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" id="chiefSearch" class="form-control" placeholder="Поиск по ФИО..." onkeyup="filterChiefs()">
+                    </div>
+                    <div id="chiefsSelectList" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="selectElderModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Выбрать старосту подъезда</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" id="elderSearch" class="form-control" placeholder="Поиск по ФИО..." onkeyup="filterElders()">
+                    </div>
+                    <div id="eldersSelectList" style="max-height: 300px; overflow-y: auto;"></div>
+                    <hr>
+                    <div class="mb-3">
+                        <label for="elderBuilding" class="form-label">Корпус:</label>
+                        <input type="text" id="elderBuilding" class="form-control" placeholder="Например: 8" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="elderEntrance" class="form-label">Подъезд:</label>
+                        <input type="text" id="elderEntrance" class="form-control" placeholder="Например: 1" required>
+                    </div>
+                    <div class="alert alert-info">
+                        <small>Выберите студента из списка выше, затем укажите корпус и подъезд, за который он будет отвечать.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="confirmSetElder()">Назначить</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="assignModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Назначить студента на обход подъезда</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="assignStudent" class="form-label">Студент:</label>
+                        <select id="assignStudent" class="form-select" data-userselect data-api-url="/api/round_assignments/students_for_rounds" data-placeholder="Выберите студента">
+                            <option value="">Выберите студента</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="assignBuilding" class="form-label">Корпус:</label>
+                        <input type="text" id="assignBuilding" class="form-control" placeholder="Например: 8">
+                    </div>
+                    <div class="mb-3">
+                        <label for="assignEntrance" class="form-label">Подъезд:</label>
+                        <input type="text" id="assignEntrance" class="form-control" placeholder="Например: 1">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="saveAssignment()">Сохранить</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="manageRoundsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Управление правом обхода</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="students-tab" data-bs-toggle="tab" data-bs-target="#students-pane" type="button" role="tab">
+                                Студенты
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="educators-tab" data-bs-toggle="tab" data-bs-target="#educators-pane" type="button" role="tab">
+                                Воспитатели
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="students-pane" role="tabpanel">
+                            <div class="mb-3">
+                                <input type="text" id="searchRoundsStudents" class="form-control" placeholder="Поиск студента...">
+                            </div>
+                            <div id="roundsStudentsList" style="max-height: 400px; overflow-y: auto;">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Загрузка...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="educators-pane" role="tabpanel">
+                            <div class="mb-3">
+                                <input type="text" id="searchEducators" class="form-control" placeholder="Поиск воспитателя...">
+                            </div>
+                            <div id="educatorsList" style="max-height: 400px; overflow-y: auto;">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Загрузка...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const adminRole = '{{ admin_role }}';
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function loadData() {
+
+            if (adminRole === 'super_admin') {
+                loadChiefs();
+                loadElders();
+            }
+            loadAssignments();
+            loadBuildings();
+            loadStudents();
+        }
+
+        function loadChiefs() {
+            $.get('/api/round_assignments/chiefs')
+                .done(function(response) {
+                    if (response.success) {
+                        renderChiefs(response.chiefs);
+                    }
+                })
+                .fail(function() {
+                    $('#chiefsList').html('<div class="alert alert-danger">Ошибка загрузки старших студентов</div>');
+                });
+        }
+
+        function renderChiefs(chiefs) {
+            const container = $('#chiefsList');
+            if (!chiefs || chiefs.length === 0) {
+                container.html('<p class="text-muted">Нет назначенных старших студентов</p>');
+                return;
+            }
+
+            let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr><th>ФИО</th><th>Корпус</th><th>Подъезд</th><th>Комната</th><th>Действия</th></tr></thead><tbody>';
+            chiefs.forEach(function(chief) {
+                html += `
+                    <tr>
+                        <td>${escapeHtml(chief.fio)}</td>
+                        <td>${escapeHtml(chief.building || '-')}</td>
+                        <td>${escapeHtml(chief.entrance || '-')}</td>
+                        <td>${escapeHtml(chief.room_number || '-')}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="removeChief(${chief.id})">
+                                <i class="bi bi-x-circle"></i> Убрать статус
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            html += '</tbody></table></div>';
+            container.html(html);
+        }
+
+        async function removeChief(studentId) {
+            if (adminRole !== 'super_admin') {
+                showBannerError('Только суперадмин может убирать статус старшего студента');
+                return;
+            }
+            const confirmed = await showBannerConfirm('Убрать статус старшего у этого студента?');
+            if (!confirmed) {
+                return;
+            }
+            $.ajax({
+                url: '/api/round_assignments/set_chief',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    student_id: studentId,
+                    is_chief: false
+                }),
+                success: function() {
+                    loadChiefs();
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Ошибка при удалении статуса старшего';
+                    showBannerError(error);
+                }
+            });
+        }
+
+        function loadElders() {
+            $.get('/api/round_assignments/elders')
+                .done(function(response) {
+                    if (response.success) {
+                        renderElders(response.elders);
+                    }
+                })
+                .fail(function() {
+                    $('#eldersList').html('<div class="alert alert-danger">Ошибка загрузки старост</div>');
+                });
+        }
+
+        function renderElders(elders) {
+            const container = $('#eldersList');
+            if (!elders || elders.length === 0) {
+                container.html('<p class="text-muted">Нет назначенных старост</p>');
+                return;
+            }
+
+            let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr><th>ФИО</th><th>Назначенные подъезды</th><th>Действия</th></tr></thead><tbody>';
+            elders.forEach(function(elder) {
+                let assignmentsHtml = '';
+                if (elder.assignments && elder.assignments.length > 0) {
+                    assignmentsHtml = elder.assignments.map(function(a) {
+                        return `${escapeHtml(a.building)}-${escapeHtml(a.entrance)}`;
+                    }).join(', ');
+                } else {
+                    assignmentsHtml = '<span class="text-muted">Не назначен</span>';
+                }
+                
+                html += `
+                    <tr>
+                        <td>${escapeHtml(elder.fio)}</td>
+                        <td>${assignmentsHtml}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="removeElder(${elder.id})">
+                                <i class="bi bi-x-circle"></i> Убрать статус
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            html += '</tbody></table></div>';
+            container.html(html);
+        }
+
+        async function removeElder(studentId) {
+            if (adminRole !== 'super_admin') {
+                showBannerError('Только суперадмин может убирать статус старосты');
+                return;
+            }
+            const confirmed = await showBannerConfirm('Убрать статус старосты у этого студента?');
+            if (!confirmed) {
+                return;
+            }
+            $.ajax({
+                url: '/api/round_assignments/set_elder',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    employee_id: studentId,
+                    is_elder: false
+                }),
+                success: function() {
+                    loadElders();
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Ошибка при удалении статуса старосты';
+                    showBannerError(error);
+                }
+            });
+        }
+
+        let allEldersStudents = null;
+        
+        function filterElders() {
+            const search = $('#elderSearch').val().toLowerCase().trim();
+            
+
+            if (!allEldersStudents) {
+                $('#eldersSelectList').html('<div class="text-center py-3"><div class="spinner-border" role="status"><span class="visually-hidden">Загрузка...</span></div></div>');
+                $.get('/api/round_assignments/all_students', {})
+                    .done(function(response) {
+                        if (response.success) {
+                            allEldersStudents = response.students || [];
+                            renderEldersList();
+                        } else {
+                            $('#eldersSelectList').html('<div class="alert alert-danger">Ошибка загрузки студентов</div>');
+                        }
+                    })
+                    .fail(function() {
+                        $('#eldersSelectList').html('<div class="alert alert-danger">Ошибка загрузки студентов</div>');
+                    });
+                return;
+            }
+            
+            renderEldersList();
+        }
+        
+        function renderEldersList() {
+            const search = $('#elderSearch').val().toLowerCase().trim();
+            
+
+            let filteredStudents = allEldersStudents || [];
+            if (search) {
+                filteredStudents = allEldersStudents.filter(function(student) {
+                    const fio = (student.fio || '').toLowerCase();
+                    const group_name = (student.group_name || '').toLowerCase();
+                    const building = (student.building || '').toLowerCase();
+                    const room_number = (student.room_number || '').toLowerCase();
+                    
+                    return fio.includes(search) ||
+                           group_name.includes(search) ||
+                           building.includes(search) ||
+                           room_number.includes(search);
+                });
+            }
+            
+            let html = '<div class="list-group">';
+            if (filteredStudents.length === 0) {
+                html += '<div class="list-group-item"><p class="text-muted mb-0">Студенты не найдены</p></div>';
+            } else {
+                filteredStudents.forEach(function(student) {
+                    const isElder = student.is_entrance_elder === 1;
+                    const elderBadge = isElder ? '<span class="badge bg-success ms-2">Староста</span>' : '';
+                    const isSelected = selectedElderId === student.id;
+                    
+
+                    const photoUrl = student.photo 
+                        ? `/static/avatars/${student.photo}` 
+                        : (typeof Utils !== 'undefined' && Utils.generateAvatarWithInitials 
+                            ? Utils.generateAvatarWithInitials(student.fio) 
+                            : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAwIDAgNDAgNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNGM0Y0RjYiLz48L3N2Zz4=');
+                    
+                    html += `
+                        <a href="#" class="list-group-item list-group-item-action ${isElder ? 'active' : ''} ${isSelected ? 'bg-primary text-white' : ''}" onclick="setElder(${student.id}, '${escapeHtml(student.fio)}'); return false;">
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="${photoUrl}" alt="${escapeHtml(student.fio)}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover; flex-shrink: 0;" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAwIDAgNDAgNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNGM0Y0RjYiLz48L3N2Zz4='">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <strong>${escapeHtml(student.fio)}</strong>${elderBadge} ${isSelected ? '<span class="badge bg-light text-dark ms-2">Выбран</span>' : ''}
+                                    </div>
+                                    ${student.building ? `<small class="${isSelected ? 'text-white-50' : 'text-muted'} d-block mt-1">Корпус: ${escapeHtml(student.building)}, Подъезд: ${escapeHtml(student.entrance || '-')}, Комната: ${escapeHtml(student.room_number || '-')}</small>` : ''}
+                                    ${student.group_name ? `<small class="${isSelected ? 'text-white-50' : 'text-muted'} d-block">Группа: ${escapeHtml(student.group_name)}</small>` : ''}
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                });
+            }
+            html += '</div>';
+            $('#eldersSelectList').html(html);
+        }
+
+        let selectedElderId = null;
+        let selectedElderFio = null;
+
+        function setElder(studentId, fio) {
+            selectedElderId = studentId;
+            selectedElderFio = fio;
+
+            $('#elderBuilding').focus();
+        }
+
+        async function confirmSetElder() {
+            if (adminRole !== 'super_admin') {
+                showBannerError('Только суперадмин может назначать старост подъездов');
+                return;
+            }
+            
+            const building = $('#elderBuilding').val().trim();
+            const entrance = $('#elderEntrance').val().trim();
+            
+            if (!selectedElderId) {
+                showBannerWarning('Выберите студента из списка');
+                return;
+            }
+            
+            if (!building || !entrance) {
+                showBannerWarning('Укажите корпус и подъезд');
+                return;
+            }
+            
+            const confirmed = await showBannerConfirm(`Назначить "${selectedElderFio}" старостой подъезда ${building}-${entrance}?`);
+            if (!confirmed) {
+                return;
+            }
+            
+            $.ajax({
+                url: '/api/round_assignments/set_elder',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    employee_id: selectedElderId,
+                    is_elder: true,
+                    building: building,
+                    entrance: entrance
+                }),
+                success: function() {
+                    $('#selectElderModal').modal('hide');
+                    $('#elderSearch').val('');
+                    $('#elderBuilding').val('');
+                    $('#elderEntrance').val('');
+                    selectedElderId = null;
+                    selectedElderFio = null;
+                    loadElders();
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Ошибка при назначении старосты';
+                    showBannerError(error);
+                }
+            });
+        }
+
+        function loadAssignments() {
+            const building = $('#filterBuilding').val();
+            const entrance = $('#filterEntrance').val();
+            
+            $.get('/api/round_assignments/list', {
+                building: building,
+                entrance: entrance
+            })
+                .done(function(response) {
+                    if (response.success) {
+                        renderAssignments(response.assignments);
+                    }
+                })
+                .fail(function() {
+                    $('#assignmentsList').html('<div class="alert alert-danger">Ошибка загрузки назначений</div>');
+                });
+        }
+
+        function renderAssignments(assignments) {
+            const container = $('#assignmentsList');
+            if (!assignments || assignments.length === 0) {
+                container.html('<p class="text-muted">Нет назначений</p>');
+                return;
+            }
+
+
+            const grouped = {};
+            assignments.forEach(function(assignment) {
+                const key = `${assignment.building}-${assignment.entrance}`;
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        building: assignment.building,
+                        entrance: assignment.entrance,
+                        students: []
+                    };
+                }
+                grouped[key].students.push(assignment);
+            });
+
+            let html = '';
+            Object.keys(grouped).sort().forEach(function(key) {
+                const group = grouped[key];
+                html += `
+                    <div class="assignment-card">
+                        <h6>Корпус ${escapeHtml(group.building)}, Подъезд ${escapeHtml(group.entrance)}</h6>
+                        <ul class="list-group">
+                `;
+                group.students.forEach(function(assignment) {
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${escapeHtml(assignment.student_fio)}</strong>
+                                ${assignment.room_number ? `<span class="text-muted ms-2">Комната: ${escapeHtml(assignment.room_number)}</span>` : ''}
+                            </div>
+                            <button class="btn btn-sm btn-danger" onclick="removeAssignment(${assignment.id})">
+                                <i class="bi bi-trash"></i> Удалить
+                            </button>
+                        </li>
+                    `;
+                });
+                html += '</ul></div>';
+            });
+            container.html(html);
+        }
+
+        async function removeAssignment(assignmentId) {
+            const confirmed = await showBannerConfirm('Удалить это назначение?');
+            if (!confirmed) {
+                return;
+            }
+            $.ajax({
+                url: '/api/round_assignments/remove',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    assignment_id: assignmentId
+                }),
+                success: function() {
+                    loadAssignments();
+                },
+                error: function() {
+                    showBannerError('Ошибка при удалении назначения');
+                }
+            });
+        }
+
+        function loadBuildings() {
+            $.get('/api/minors/list')
+                .done(function(response) {
+                    if (response.success && response.buildings) {
+                        const select = $('#filterBuilding');
+                        select.empty().append('<option value="">Все корпуса</option>');
+                        response.buildings.forEach(function(building) {
+                            select.append(`<option value="${escapeHtml(building)}">${escapeHtml(building)}</option>`);
+                        });
+                    }
+                });
+        }
+
+        function loadStudents() {
+
+
+            $('#assignModal').on('shown.bs.modal', function() {
+                setTimeout(function() {
+                    const select = $('#assignStudent')[0];
+                    if (select && !select.classList.contains('consta-userselect-initialized')) {
+                        if (typeof initConstaUserSelects !== 'undefined') {
+                            initConstaUserSelects(document);
+                        }
+                    }
+                }, 100);
+            });
+        }
+
+        function saveAssignment() {
+            const select = $('#assignStudent')[0];
+            const studentId = select ? select.value : '';
+            const building = $('#assignBuilding').val().trim();
+            const entrance = $('#assignEntrance').val().trim();
+
+            if (!studentId || !building || !entrance) {
+                showBannerWarning('Заполните все поля');
+                return;
+            }
+
+            $.ajax({
+                url: '/api/round_assignments/assign',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    student_id: studentId,
+                    building: building,
+                    entrance: entrance
+                }),
+                success: function() {
+                    $('#assignModal').modal('hide');
+                    $('#assignStudent').val('');
+                    $('#assignBuilding').val('');
+                    $('#assignEntrance').val('');
+                    loadAssignments();
+                },
+                error: function(xhr) {
+                    let msg = 'Ошибка при назначении';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        msg = xhr.responseJSON.error;
+                    }
+                    showBannerError(msg);
+                }
+            });
+        }
+
+        let allChiefsStudents = null;
+        
+        function filterChiefs() {
+            const search = $('#chiefSearch').val().toLowerCase().trim();
+            
+
+            if (!allChiefsStudents) {
+                $('#chiefsSelectList').html('<div class="text-center py-3"><div class="spinner-border" role="status"><span class="visually-hidden">Загрузка...</span></div></div>');
+                $.get('/api/round_assignments/all_students', {})
+                    .done(function(response) {
+                        if (response.success) {
+                            allChiefsStudents = response.students || [];
+                            renderChiefsList();
+                        } else {
+                            $('#chiefsSelectList').html('<div class="alert alert-danger">Ошибка загрузки студентов</div>');
+                        }
+                    })
+                    .fail(function() {
+                        $('#chiefsSelectList').html('<div class="alert alert-danger">Ошибка загрузки студентов</div>');
+                    });
+                return;
+            }
+            
+            renderChiefsList();
+        }
+        
+        function renderChiefsList() {
+            const search = $('#chiefSearch').val().toLowerCase().trim();
+            
+
+            let filteredStudents = allChiefsStudents || [];
+            if (search) {
+                filteredStudents = allChiefsStudents.filter(function(student) {
+                    const fio = (student.fio || '').toLowerCase();
+                    const group_name = (student.group_name || '').toLowerCase();
+                    const building = (student.building || '').toLowerCase();
+                    const room_number = (student.room_number || '').toLowerCase();
+                    
+                    return fio.includes(search) ||
+                           group_name.includes(search) ||
+                           building.includes(search) ||
+                           room_number.includes(search);
+                });
+            }
+            
+            let html = '<div class="list-group">';
+            if (filteredStudents.length === 0) {
+                html += '<div class="list-group-item"><p class="text-muted mb-0">Студенты не найдены</p></div>';
+            } else {
+                filteredStudents.forEach(function(student) {
+                    const isChief = student.is_round_chief == 1;
+                    const chiefBadge = isChief ? '<span class="badge bg-primary ms-2">Старший</span>' : '';
+                    
+
+                    const photoUrl = student.photo 
+                        ? `/static/avatars/${student.photo}` 
+                        : (typeof Utils !== 'undefined' && Utils.generateAvatarWithInitials 
+                            ? Utils.generateAvatarWithInitials(student.fio) 
+                            : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAwIDAgNDAgNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNGM0Y0RjYiLz48L3N2Zz4=');
+                    
+                    html += `
+                        <a href="#" class="list-group-item list-group-item-action ${isChief ? 'active' : ''}" onclick="setChief(${student.id}, '${escapeHtml(student.fio)}'); return false;">
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="${photoUrl}" alt="${escapeHtml(student.fio)}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover; flex-shrink: 0;" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAwIDAgNDAgNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNGM0Y0RjYiLz48L3N2Zz4='">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <strong>${escapeHtml(student.fio)}</strong>${chiefBadge}
+                                    </div>
+                                    ${student.building ? `<small class="text-muted d-block mt-1">Корпус: ${escapeHtml(student.building)}, Подъезд: ${escapeHtml(student.entrance || '-')}, Комната: ${escapeHtml(student.room_number || '-')}</small>` : ''}
+                                    ${student.group_name ? `<small class="text-muted d-block">Группа: ${escapeHtml(student.group_name)}</small>` : ''}
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                });
+            }
+            html += '</div>';
+            $('#chiefsSelectList').html(html);
+        }
+
+        async function setChief(studentId, fio) {
+            if (adminRole !== 'super_admin') {
+                showBannerError('Только суперадмин может назначать старшего студента');
+                return;
+            }
+            const confirmed = await showBannerConfirm(`Назначить "${fio}" старшим студентом?`);
+            if (!confirmed) {
+                return;
+            }
+            $.ajax({
+                url: '/api/round_assignments/set_chief',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    student_id: studentId,
+                    is_chief: true
+                }),
+                success: function() {
+                    $('#selectChiefModal').modal('hide');
+                    $('#chiefSearch').val('');
+                    loadChiefs();
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Ошибка при назначении главного';
+                    showBannerError(error);
+                }
+            });
+        }
+
+        $('#selectChiefModal').on('show.bs.modal', function() {
+            allChiefsStudents = null;
+            filterChiefs();
+        });
+        
+        $('#selectChiefModal').on('hidden.bs.modal', function() {
+            $('#chiefSearch').val('');
+            allChiefsStudents = null;
+        });
+
+
+        let allRoundsStudents = null;
+        let allEducators = null;
+        let studentsWithRightSet = new Set();
+
+        function loadRoundsStudents() {
+            const container = $('#roundsStudentsList');
+            container.html('<div class="text-center py-3"><div class="spinner-border" role="status"><span class="visually-hidden">Загрузка...</span></div></div>');
+
+
+            $.when(
+                $.ajax({
+                    url: '/api/minors/can_do_rounds',
+                    method: 'GET'
+                }),
+                $.ajax({
+                    url: '/api/employees',
+                    method: 'GET'
+                })
+            ).done(function(roundsResponse, employeesResponse) {
+                const roundsData = roundsResponse[0];
+                allRoundsStudents = employeesResponse[0];
+
+                if (roundsData.success && roundsData.students) {
+                    studentsWithRightSet = new Set();
+                    roundsData.students.forEach(s => studentsWithRightSet.add(s.id));
+                }
+
+                renderRoundsStudents();
+            }).fail(function(xhr) {
+                
+                container.html('<div class="alert alert-danger">Ошибка загрузки данных</div>');
+            });
+        }
+
+        function renderRoundsStudents() {
+            const container = $('#roundsStudentsList');
+            container.empty();
+
+            if (!allRoundsStudents || allRoundsStudents.length === 0) {
+                container.html('<div class="alert alert-info">Нет студентов в базе</div>');
+                return;
+            }
+
+            let html = '<table class="table table-sm table-hover">';
+            html += '<thead><tr><th>ФИО</th><th>Корпус-Подъезд-Комната</th><th>Право обхода</th></tr></thead><tbody>';
+            
+            const searchTerm = $('#searchRoundsStudents').val().toLowerCase().trim();
+            const filteredStudents = allRoundsStudents.filter(s => {
+                if (!searchTerm) return true;
+                const fio = (s.fio || '').toLowerCase();
+                const building = (s.building || '').toLowerCase();
+                const entrance = (s.entrance || '').toLowerCase();
+                const room_number = (s.room_number || '').toLowerCase();
+                const group_name = (s.group_name || '').toLowerCase();
+                
+                return fio.includes(searchTerm) ||
+                    building.includes(searchTerm) ||
+                    entrance.includes(searchTerm) ||
+                    room_number.includes(searchTerm) ||
+                    group_name.includes(searchTerm);
+            });
+
+            if (filteredStudents.length === 0) {
+                html += '<tr><td colspan="3" class="text-center">Студенты не найдены</td></tr>';
+            } else {
+                filteredStudents.forEach(student => {
+                    const hasRight = studentsWithRightSet.has(student.id);
+                    const roomStr = `${student.building || '-'}-${student.entrance || '-'}-${student.room_number || '-'}`;
+                    html += `
+                        <tr>
+                            <td>${escapeHtml(student.fio || '-')}</td>
+                            <td>${escapeHtml(roomStr)}</td>
+                            <td>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" 
+                                           ${hasRight ? 'checked' : ''} 
+                                           onchange="toggleRoundRight(${student.id}, this.checked)">
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            html += '</tbody></table>';
+            container.html(html);
+        }
+
+        function toggleRoundRight(studentId, canDo) {
+            $.ajax({
+                url: '/api/minors/set_can_do_rounds',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    student_id: studentId,
+                    can_do_rounds: canDo
+                }),
+                success: function(response) {
+                    if (response.success) {
+
+                        if (canDo) {
+                            studentsWithRightSet.add(studentId);
+                        } else {
+                            studentsWithRightSet.delete(studentId);
+                        }
+
+                        renderRoundsStudents();
+                    } else {
+                        if (typeof showBannerError !== 'undefined') {
+                            showBannerError('Ошибка: ' + (response.error || 'Не удалось обновить право'), 'Ошибка');
+                        } else {
+                            alert('Ошибка: ' + (response.error || 'Не удалось обновить право'));
+                        }
+
+                        loadRoundsStudents();
+                    }
+                },
+                error: function(xhr) {
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError('Ошибка при сохранении', 'Ошибка');
+                    } else {
+                        alert('Ошибка при сохранении');
+                    }
+
+                        loadRoundsStudents();
+                }
+            });
+        }
+
+        function loadEducators() {
+            const container = $('#educatorsList');
+            container.html('<div class="text-center py-3"><div class="spinner-border" role="status"><span class="visually-hidden">Загрузка...</span></div></div>');
+
+            $.ajax({
+                url: '/api/round_assignments/educators_list',
+                method: 'GET'
+            }).done(function(response) {
+                if (response.success) {
+                    allEducators = response.educators;
+                    renderEducators();
+                } else {
+                    container.html('<div class="alert alert-danger">Ошибка загрузки воспитателей</div>');
+                }
+            }).fail(function(xhr) {
+                container.html('<div class="alert alert-danger">Ошибка загрузки воспитателей</div>');
+            });
+        }
+
+        function renderEducators() {
+            const container = $('#educatorsList');
+            container.empty();
+
+            if (!allEducators || allEducators.length === 0) {
+                container.html('<div class="alert alert-info">Нет воспитателей в системе</div>');
+                return;
+            }
+
+            let html = '<table class="table table-sm table-hover">';
+            html += '<thead><tr><th>ФИО</th><th>Логин</th><th>Макс. подъездов</th></tr></thead><tbody>';
+            
+            const searchTerm = $('#searchEducators').val().toLowerCase().trim();
+            const filteredEducators = allEducators.filter(e => {
+                if (!searchTerm) return true;
+                const fio = (e.fio || '').toLowerCase();
+                const username = (e.username || '').toLowerCase();
+                return fio.includes(searchTerm) || username.includes(searchTerm);
+            });
+
+            if (filteredEducators.length === 0) {
+                html += '<tr><td colspan="3" class="text-center">Воспитатели не найдены</td></tr>';
+            } else {
+                filteredEducators.forEach(educator => {
+                    const maxEntrances = educator.max_entrances || 0;
+                    html += `
+                        <tr>
+                            <td>${escapeHtml(educator.fio || '-')}</td>
+                            <td>${escapeHtml(educator.username || '-')}</td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" 
+                                       style="width: 120px;" 
+                                       min="0" max="20" 
+                                       value="${maxEntrances}" 
+                                       onchange="setEducatorMaxEntrances(${educator.id}, this.value)"
+                                       placeholder="0">
+                                <small class="text-muted d-block">0 = не участвует</small>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            html += '</tbody></table>';
+            container.html(html);
+        }
+
+        function setEducatorMaxEntrances(educatorId, maxEntrances) {
+            const value = parseInt(maxEntrances) || 0;
+            if (value < 0) {
+                alert('Количество подъездов не может быть отрицательным');
+                return;
+            }
+            
+            $.ajax({
+                url: '/api/round_assignments/set_max_entrances',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    educator_id: educatorId,
+                    max_entrances: value
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        // Обновляем данные воспитателя в списке
+                        const educator = allEducators.find(e => e.id === educatorId);
+                        if (educator) {
+                            educator.max_entrances = value;
+                        }
+                        if (typeof showBannerSuccess !== 'undefined') {
+                            showBannerSuccess('Количество подъездов обновлено');
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Ошибка при сохранении';
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError(error);
+                    } else {
+                        alert(error);
+                    }
+                    loadEducators();
+                }
+            });
+        }
+
+        $('#searchRoundsStudents').on('input', function() {
+
+            if (allRoundsStudents !== null) {
+                renderRoundsStudents();
+            } else {
+
+                loadRoundsStudents();
+            }
+        });
+
+        $('#manageRoundsModal').on('show.bs.modal', function() {
+            loadRoundsStudents();
+            loadEducators();
+        });
+
+        $('#educators-tab').on('shown.bs.tab', function() {
+            if (!allEducators) {
+                loadEducators();
+            }
+        });
+
+        $('#searchEducators').on('input', function() {
+            if (allEducators !== null) {
+                renderEducators();
+            } else {
+                loadEducators();
+            }
+        });
+
+        $(document).ready(function() {
+            loadData();
+            
+            $('#selectElderModal').on('show.bs.modal', function() {
+                allEldersStudents = null;
+                filterElders();
+            });
+            
+            $('#selectElderModal').on('hidden.bs.modal', function() {
+                $('#elderSearch').val('');
+                allEldersStudents = null;
+                selectedElderId = null;
+                selectedElderFio = null;
+            });
+        });
+    </script>
+    
+    <!-- Модальное окно управления ограничениями -->
+    <div class="modal fade" id="restrictionsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ограничения на обходы</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRestrictionModal" onclick="$('#restrictionsModal').modal('hide')">
+                            <i class="bi bi-plus-circle"></i> Добавить ограничение
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Студент</th>
+                                    <th>Корпус</th>
+                                    <th>Подъезд</th>
+                                    <th>Причина</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="restrictionsTableBody">
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <div class="spinner-border spinner-border-sm" role="status">
+                                            <span class="visually-hidden">Загрузка...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления ограничения -->
+    <div class="modal fade" id="addRestrictionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить ограничение</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addRestrictionForm">
+                        <div class="mb-3">
+                            <label for="restrictionStudent" class="form-label">Студент *</label>
+                            <div id="restrictionStudentSelect"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="restrictionBuilding" class="form-label">Корпус *</label>
+                            <select class="form-select" id="restrictionBuilding" required>
+                                <option value="">Выберите корпус</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="restrictionEntrance" class="form-label">Подъезд *</label>
+                            <select class="form-select" id="restrictionEntrance" required>
+                                <option value="">Выберите подъезд</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="restrictionReason" class="form-label">Причина (необязательно)</label>
+                            <textarea class="form-control" id="restrictionReason" rows="3" placeholder="Укажите причину ограничения"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="saveRestrictionBtn">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно генерации графика -->
+    <div class="modal fade" id="generateScheduleModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Генерация графика назначений</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Как работает генерация:</strong><br>
+                        • Воспитатели (студенты с указанным количеством подъездов) назначаются на указанное количество подъездов<br>
+                        • Обычные студенты распределяются на оставшиеся подъезды<br>
+                        • Учитываются все ограничения на обходы<br>
+                        • Можно заменить существующие назначения или добавить к ним
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="replaceExistingAssignments">
+                            <label class="form-check-label" for="replaceExistingAssignments">
+                                Заменить существующие назначения
+                            </label>
+                        </div>
+                        <small class="form-text text-muted">Если не отмечено, новые назначения будут добавлены к существующим</small>
+                    </div>
+                    <div id="generateScheduleStatus"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="generateScheduleBtn">
+                        <i class="bi bi-magic"></i> Сгенерировать график
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+    <script src="/static/js/consta-userselect.js"></script>
+    
+    <script>
+        // Загрузка ограничений
+        function loadRestrictions() {
+            $.get('/api/round_assignments/restrictions')
+                .done(function(response) {
+                    if (response.success) {
+                        renderRestrictions(response.restrictions);
+                    }
+                })
+                .fail(function() {
+                    $('#restrictionsTableBody').html('<tr><td colspan="5" class="text-center text-danger">Ошибка загрузки ограничений</td></tr>');
+                });
+        }
+
+        function renderRestrictions(restrictions) {
+            const tbody = $('#restrictionsTableBody');
+            if (!restrictions || restrictions.length === 0) {
+                tbody.html('<tr><td colspan="5" class="text-center text-muted">Ограничения не добавлены</td></tr>');
+                return;
+            }
+
+            tbody.empty();
+            restrictions.forEach(function(r) {
+                tbody.append(`
+                    <tr>
+                        <td>${escapeHtml(r.student_fio || '')}</td>
+                        <td>${escapeHtml(r.building || '')}</td>
+                        <td>${escapeHtml(r.entrance || '')}</td>
+                        <td>${escapeHtml(r.reason || '-')}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRestriction(${r.id})">
+                                <i class="bi bi-trash"></i> Удалить
+                            </button>
+                        </td>
+                    </tr>
+                `);
+            });
+        }
+
+        function deleteRestriction(restrictionId) {
+            if (typeof showBannerConfirm !== 'undefined') {
+                showBannerConfirm('Удалить это ограничение?', function() {
+                    $.ajax({
+                        url: `/api/round_assignments/restrictions/${restrictionId}`,
+                        method: 'DELETE',
+                        success: function() {
+                            loadRestrictions();
+                            if (typeof showBannerSuccess !== 'undefined') {
+                                showBannerSuccess('Ограничение удалено');
+                            }
+                        },
+                        error: function(xhr) {
+                            const error = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Ошибка при удалении ограничения';
+                            if (typeof showBannerError !== 'undefined') {
+                                showBannerError(error);
+                            } else {
+                                alert(error);
+                            }
+                        }
+                    });
+                });
+            } else {
+                if (confirm('Удалить это ограничение?')) {
+                    $.ajax({
+                        url: `/api/round_assignments/restrictions/${restrictionId}`,
+                        method: 'DELETE',
+                        success: function() {
+                            loadRestrictions();
+                            alert('Ограничение удалено');
+                        },
+                        error: function(xhr) {
+                            const error = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Ошибка при удалении ограничения';
+                            alert(error);
+                        }
+                    });
+                }
+            }
+        }
+
+        // Инициализация модального окна ограничений
+        $('#restrictionsModal').on('show.bs.modal', function() {
+            loadRestrictions();
+        });
+
+        // Инициализация модального окна добавления ограничения
+        let restrictionUserSelect = null;
+        
+        $('#addRestrictionModal').on('show.bs.modal', function() {
+            // Очищаем контейнер
+            const container = document.getElementById('restrictionStudentSelect');
+            if (container) {
+                container.innerHTML = '';
+            }
+            
+            // Загружаем список студентов
+            if (typeof UserSelect !== 'undefined') {
+                try {
+                    restrictionUserSelect = new UserSelect({
+                        container: container,
+                        placeholder: 'Выберите студента',
+                        apiUrl: '/api/round_assignments/all_students',
+                        onSelect: function(student) {
+                            window.selectedRestrictionStudentId = student.id;
+                        }
+                    });
+                } catch (error) {
+                    console.error('Ошибка инициализации UserSelect:', error);
+                    // Fallback: используем обычный select
+                    loadStudentsForRestriction();
+                }
+            } else {
+                // Fallback: используем обычный select
+                loadStudentsForRestriction();
+            }
+            
+            // Загружаем корпуса и подъезды
+            loadBuildingsForRestriction();
+        });
+        
+        $('#addRestrictionModal').on('hidden.bs.modal', function() {
+            // Очищаем при закрытии модального окна
+            window.selectedRestrictionStudentId = null;
+            if (restrictionUserSelect && typeof restrictionUserSelect.destroy === 'function') {
+                restrictionUserSelect.destroy();
+            }
+            restrictionUserSelect = null;
+            const container = document.getElementById('restrictionStudentSelect');
+            if (container) {
+                container.innerHTML = '';
+            }
+        });
+        
+        function loadStudentsForRestriction() {
+            // Fallback: загружаем студентов через обычный select
+            $.get('/api/round_assignments/all_students')
+                .done(function(response) {
+                    // API может возвращать массив напрямую или объект с полем students
+                    const students = Array.isArray(response) ? response : (response.students || []);
+                    
+                    if (students && students.length > 0) {
+                        const container = document.getElementById('restrictionStudentSelect');
+                        if (container) {
+                            let html = '<select class="form-select" id="restrictionStudentSelectFallback">';
+                            html += '<option value="">Выберите студента</option>';
+                            students.forEach(function(student) {
+                                const fio = student.fio || student.name || 'Без имени';
+                                html += `<option value="${student.id}">${fio}</option>`;
+                            });
+                            html += '</select>';
+                            container.innerHTML = html;
+                            
+                            $('#restrictionStudentSelectFallback').on('change', function() {
+                                window.selectedRestrictionStudentId = $(this).val() ? parseInt($(this).val()) : null;
+                            });
+                        }
+                    } else {
+                        const container = document.getElementById('restrictionStudentSelect');
+                        if (container) {
+                            container.innerHTML = '<div class="alert alert-info">Студенты не найдены</div>';
+                        }
+                    }
+                })
+                .fail(function(xhr) {
+                    const container = document.getElementById('restrictionStudentSelect');
+                    if (container) {
+                        const error = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Ошибка загрузки списка студентов';
+                        container.innerHTML = `<div class="alert alert-danger">${error}</div>`;
+                    }
+                });
+        }
+
+        function loadBuildingsForRestriction() {
+            $.get('/api/admin/export/buildings_entrances')
+                .done(function(response) {
+                    if (response.success && response.buildings_entrances) {
+                        const buildingSelect = $('#restrictionBuilding');
+                        const entranceSelect = $('#restrictionEntrance');
+                        
+                        buildingSelect.empty().append('<option value="">Выберите корпус</option>');
+                        entranceSelect.empty().append('<option value="">Выберите подъезд</option>');
+                        
+                        Object.keys(response.buildings_entrances).sort().forEach(function(building) {
+                            buildingSelect.append(`<option value="${building}">Корпус ${building}</option>`);
+                        });
+                        
+                        buildingSelect.on('change', function() {
+                            const selectedBuilding = $(this).val();
+                            entranceSelect.empty().append('<option value="">Выберите подъезд</option>');
+                            
+                            if (selectedBuilding && response.buildings_entrances[selectedBuilding]) {
+                                response.buildings_entrances[selectedBuilding].sort().forEach(function(entrance) {
+                                    entranceSelect.append(`<option value="${entrance}">Подъезд ${entrance}</option>`);
+                                });
+                            }
+                        });
+                    }
+                });
+        }
+
+        // Сохранение ограничения
+        $('#saveRestrictionBtn').on('click', function() {
+            // Получаем ID студента из разных источников
+            let studentId = window.selectedRestrictionStudentId;
+            
+            // Если не нашли через UserSelect, пробуем fallback select
+            if (!studentId) {
+                const fallbackSelect = $('#restrictionStudentSelectFallback');
+                if (fallbackSelect.length && fallbackSelect.val()) {
+                    studentId = parseInt(fallbackSelect.val());
+                }
+            }
+            
+            const building = $('#restrictionBuilding').val();
+            const entrance = $('#restrictionEntrance').val();
+            const reason = $('#restrictionReason').val().trim();
+            
+            if (!studentId) {
+                alert('Выберите студента');
+                return;
+            }
+            
+            if (!building || !entrance) {
+                alert('Выберите корпус и подъезд');
+                return;
+            }
+            
+            $.ajax({
+                url: '/api/round_assignments/restrictions',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    student_id: studentId,
+                    building: building,
+                    entrance: entrance,
+                    reason: reason
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        $('#addRestrictionModal').modal('hide');
+                        $('#addRestrictionForm')[0].reset();
+                        window.selectedRestrictionStudentId = null;
+                        // Очищаем fallback select
+                        $('#restrictionStudentSelectFallback').val('');
+                        loadRestrictions();
+                        if (typeof showBannerSuccess !== 'undefined') {
+                            showBannerSuccess('Ограничение добавлено');
+                        } else {
+                            alert('Ограничение добавлено');
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Ошибка при добавлении ограничения';
+                    alert(error);
+                }
+            });
+        });
+
+        // Генерация графика
+        $('#generateScheduleBtn').on('click', function() {
+            const replaceExisting = $('#replaceExistingAssignments').is(':checked');
+            
+            $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Генерация...');
+            $('#generateScheduleStatus').html('');
+            
+            $.ajax({
+                url: '/api/round_assignments/generate_schedule',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    replace_existing: replaceExisting
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        $('#generateScheduleStatus').html(`
+                            <div class="alert alert-success">
+                                <strong>График успешно сгенерирован!</strong><br>
+                                Создано назначений: ${response.created}<br>
+                                Обновлено назначений: ${response.updated}<br>
+                                Всего: ${response.total}
+                            </div>
+                        `);
+                        
+                        setTimeout(function() {
+                            $('#generateScheduleModal').modal('hide');
+                            loadAssignments();
+                        }, 2000);
+                        
+                        if (typeof showBannerSuccess !== 'undefined') {
+                            showBannerSuccess(response.message);
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Ошибка при генерации графика';
+                    $('#generateScheduleStatus').html(`<div class="alert alert-danger">${error}</div>`);
+                },
+                complete: function() {
+                    $('#generateScheduleBtn').prop('disabled', false).html('<i class="bi bi-magic"></i> Сгенерировать график');
+                }
+            });
+        });
+    </script>
+    <script src="/static/js/consta-banner.js"></script>
+</body>
+</html>
+

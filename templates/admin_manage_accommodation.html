@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Управление проживанием</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="/static/css/consta-dragndrop.css">
+    <link rel="stylesheet" href="/static/css/consta-banner.css">
+    <link rel="stylesheet" href="/static/css/consta-button.css">
+    <link rel="stylesheet" href="/static/css/consta-datepicker.css">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/style.css?v=4">
+    <style>
+        .room-row:hover {
+            background-color: #f8f9fa;
+        }
+        .table th {
+            white-space: nowrap;
+            font-weight: 600;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+        .table-responsive {
+            max-height: calc(100vh - 250px);
+            overflow-y: auto;
+        }
+        /* Стили для заголовка в верхнем меню */
+        .top-menu-content {
+            position: relative;
+        }
+        .top-menu-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff !important;
+            font-size: 1.25rem;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .top-menu-item.back-to-panel {
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Управление проживанием</h2>
+            <a href="/admin/manage_rooms" class="top-menu-item">
+                <i class="bi bi-door-open"></i>
+                <span>Управление комнатами</span>
+            </a>
+        </div>
+    </div>
+    
+    <div class="container mt-4" style="margin-top: 80px !important;">
+        <div class="mb-4">
+            <p class="text-muted">Просмотр информации о проживании студентов в комнатах, статус оплаты и список проживающих</p>
+        </div>
+
+        <div class="mb-3 row">
+            <div class="col-md-6">
+                <input type="text" id="searchRooms" class="form-control" placeholder="Поиск по корпусу, подъезду, номеру комнаты...">
+            </div>
+            <div class="col-md-3">
+                <input type="text" id="paymentMonth" class="form-control" title="Месяц оплаты" placeholder="ММ.ГГГГ" readonly>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100" id="refreshBtn">
+                    <i class="bi bi-arrow-clockwise"></i> Обновить
+                </button>
+            </div>
+        </div>
+
+        <div class="row" id="roomsList">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-center py-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+    <script src="/static/js/consta-datepicker.js"></script>
+    <script>
+
+        async function loadRooms() {
+            try {
+                let month = $('#paymentMonth').val() || '';
+                // Конвертируем формат ММ.ГГГГ в ГГГГ-ММ для API
+                if (month && month.includes('.')) {
+                    const parts = month.split('.');
+                    if (parts.length === 2) {
+                        month = `${parts[1]}-${parts[0].padStart(2, '0')}`;
+                    }
+                }
+                const url = month ? `/api/admin/rooms?month=${month}` : '/api/admin/rooms';
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Конвертируем формат месяца из YYYY-MM в MM.YYYY для отображения
+                    let displayMonth = '';
+                    if (data.month && data.month.includes('-')) {
+                        const parts = data.month.split('-');
+                        if (parts.length === 2) {
+                            displayMonth = `${parts[1]}.${parts[0]}`;
+                        }
+                    } else if (data.month) {
+                        displayMonth = data.month;
+                    }
+                    renderRooms(data.rooms, displayMonth);
+                } else {
+                    $('#roomsList').html('<div class="col-12"><div class="alert alert-danger">Ошибка загрузки комнат</div></div>');
+                }
+            } catch (error) {
+                
+                $('#roomsList').html('<div class="col-12"><div class="alert alert-danger">Ошибка загрузки комнат</div></div>');
+            }
+        }
+
+        function renderRooms(rooms, month = '') {
+            const container = $('#roomsList');
+            container.empty();
+
+            if (rooms.length === 0) {
+                container.html('<div class="col-12"><div class="alert alert-info">Комнаты не добавлены</div></div>');
+                return;
+            }
+
+            const monthNames = {
+                '01': 'Январь', '02': 'Февраль', '03': 'Март', '04': 'Апрель',
+                '05': 'Май', '06': 'Июнь', '07': 'Июль', '08': 'Август',
+                '09': 'Сентябрь', '10': 'Октябрь', '11': 'Ноябрь', '12': 'Декабрь'
+            };
+            let monthDisplay = '';
+            if (month) {
+                // Обрабатываем формат MM.YYYY
+                if (month.includes('.')) {
+                    const parts = month.split('.');
+                    if (parts.length === 2) {
+                        const monthNum = parts[0].padStart(2, '0');
+                        const year = parts[1];
+                        monthDisplay = `${monthNames[monthNum] || ''} ${year}`;
+                    }
+                }
+            }
+
+
+            rooms.sort((a, b) => {
+                if (a.building !== b.building) return a.building.localeCompare(b.building);
+                if (a.entrance !== b.entrance) return a.entrance.localeCompare(b.entrance);
+                const aNum = parseInt(a.room_number) || 0;
+                const bNum = parseInt(b.room_number) || 0;
+                return aNum - bNum;
+            });
+
+
+            let tableHtml = `
+                <div class="col-12">
+                    <div class="card">
+                        ${month ? `<div class="card-header"><h5 class="mb-0">Месяц оплаты: ${monthDisplay}</h5></div>` : ''}
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Комната</th>
+                                            <th>Мест</th>
+                                            <th>Проживает</th>
+                                            ${month ? '<th>Оплатили</th><th>Не оплатили</th><th>Студенты</th><th>Действия</th>' : '<th>Действия</th>'}
+                                        </tr>
+                                    </thead>
+                                    <tbody id="roomsTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.html(tableHtml);
+
+            const tbody = $('#roomsTableBody');
+            
+            rooms.forEach(room => {
+                const paidCount = room.students ? room.students.filter(s => s.paid).length : 0;
+                const unpaidCount = room.students_count - paidCount;
+                
+                let studentsListHtml = '';
+                if (room.students && room.students.length > 0) {
+                    studentsListHtml = '<div class="small">';
+                    room.students.forEach((student, idx) => {
+                        const statusIcon = student.paid ? '✅' : '❌';
+                        const statusClass = student.paid ? 'text-success' : 'text-danger';
+                        studentsListHtml += `<div>${statusIcon} <span class="${statusClass}">${student.fio}</span></div>`;
+                    });
+                    studentsListHtml += '</div>';
+                }
+                
+                const roomDisplay = [room.building, room.entrance, room.room_number].filter(Boolean).join('-') || '-';
+                const row = $(`
+                    <tr class="room-row" data-building="${room.building}" data-entrance="${room.entrance}" data-number="${room.room_number}">
+                        <td><strong>${roomDisplay}</strong></td>
+                        <td><span class="badge bg-primary">${room.capacity}</span></td>
+                        <td><span class="badge bg-info">${room.students_count}</span></td>
+                        ${month ? `
+                            <td><span class="badge bg-success">${paidCount}</span></td>
+                            <td><span class="badge bg-danger">${unpaidCount}</span></td>
+                            <td>${studentsListHtml || '-'}</td>
+                            <td>
+                                ${unpaidCount > 0 ? `
+                                    <button class="btn btn-sm btn-warning" onclick="sendReminders(${room.id}, '${room.building}-${room.entrance}-${room.room_number}')" title="Отправить напоминания">
+                                        <i class="bi bi-bell"></i> Напоминания
+                                    </button>
+                                ` : '<span class="text-muted">-</span>'}
+                            </td>
+                        ` : `
+                            <td>
+                                <a href="/admin/manage_rooms" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-door-open"></i> Управление комнатой
+                                </a>
+                            </td>
+                        `}
+                    </tr>
+                `);
+                tbody.append(row);
+            });
+        }
+
+
+        $('#searchRooms').on('input', function() {
+            const search = $(this).val().toLowerCase();
+            $('.room-row').each(function() {
+                const building = $(this).data('building') || '';
+                const entrance = $(this).data('entrance') || '';
+                const number = $(this).data('number') || '';
+                const text = `${building} ${entrance} ${number}`.toLowerCase();
+                
+                if (text.includes(search)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
+
+
+        async function sendReminders(roomId, roomName) {
+            const message = `Отправить напоминания об оплате всем неоплатившим студентам в комнате ${roomName}?`;
+            
+            if (typeof showBannerConfirm !== 'undefined') {
+                showBannerConfirm(
+                    message,
+                    async function() {
+                        await doSendReminders(roomId);
+                    },
+                    function() {
+
+                    }
+                );
+            } else {
+                if (!confirm(message)) {
+                    return;
+                }
+                doSendReminders(roomId);
+            }
+        }
+        
+        async function doSendReminders(roomId) {
+            try {
+                const response = await fetch('/api/admin/rooms/send_payment_reminders', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({room_id: roomId})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const message = `Напоминания отправлены: ${data.sent} успешно, ${data.failed} ошибок.${data.errors.length > 0 ? '\nОшибки:\n' + data.errors.join('\n') : ''}`;
+                    if (typeof showBannerSuccess !== 'undefined') {
+                        showBannerSuccess(message, 'Успешно', [], 8000);
+                    } else {
+                        alert(message);
+                    }
+                    loadRooms();
+                } else {
+                    const errorMsg = 'Ошибка отправки напоминаний: ' + (data.error || 'Неизвестная ошибка');
+                    if (typeof showBannerError !== 'undefined') {
+                        showBannerError(errorMsg, 'Ошибка');
+                    } else {
+                        alert(errorMsg);
+                    }
+                }
+            } catch (error) {
+                const errorMsg = 'Ошибка: ' + error.message;
+                if (typeof showBannerError !== 'undefined') {
+                    showBannerError(errorMsg, 'Ошибка');
+                } else {
+                    alert(errorMsg);
+                }
+            }
+        }
+
+
+        function setDefaultMonth() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1; // Текущий месяц (1-12)
+            
+            const monthStr = `${String(month).padStart(2, '0')}.${year}`;
+            $('#paymentMonth').val(monthStr);
+        }
+
+        $('#refreshBtn').on('click', function() {
+            loadRooms();
+        });
+
+        $(document).ready(function() {
+            // Устанавливаем текущий месяц по умолчанию
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1; // Текущий месяц (1-12)
+            const monthStr = `${String(month).padStart(2, '0')}.${year}`;
+            $('#paymentMonth').val(monthStr);
+            
+            // Инициализация Consta datepicker для поля месяца
+            if (typeof flatpickr !== 'undefined') {
+                setTimeout(function() {
+                    try {
+                        const monthInput = document.getElementById('paymentMonth');
+                        if (monthInput) {
+                            // Уничтожаем предыдущий экземпляр, если он существует
+                            if (monthInput._flatpickr) {
+                                monthInput._flatpickr.destroy();
+                            }
+                            
+                            // Очищаем значение поля перед инициализацией
+                            monthInput.value = monthStr;
+                            
+                            // Устанавливаем начальное значение - текущий месяц
+                            const currentDate = new Date(year, month - 1, 1); // month - 1 потому что Date использует 0-11
+                            
+                            const fp = flatpickr(monthInput, {
+                                dateFormat: 'm.Y',
+                                locale: {
+                                    firstDayOfWeek: 1,
+                                    weekdays: {
+                                        shorthand: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
+                                        longhand: ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
+                                    },
+                                    months: {
+                                        shorthand: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+                                        longhand: ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+                                    }
+                                },
+                                allowInput: false,
+                                clickOpens: true,
+                                animate: true,
+                                static: false,
+                                appendTo: document.body,
+                                monthSelectorType: 'static',
+                                defaultDate: currentDate,
+                                onChange: function(selectedDates, dateStr, instance) {
+                                    if (dateStr) {
+                                        loadRooms();
+                                    }
+                                }
+                            });
+                            
+                            // Принудительно устанавливаем значение после инициализации
+                            fp.setDate(currentDate, false);
+                        }
+                    } catch (error) {
+                        console.warn('Ошибка инициализации календаря:', error);
+                        setDefaultMonth();
+                    }
+                }, 100);
+            } else {
+                setDefaultMonth();
+            }
+            
+            loadRooms();
+        });
+    </script>
+    
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+</body>
+</html>
+

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Настройка Telegram User Bot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/style.css?v=5">
+    <style>
+        .top-menu-content {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .top-menu-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff !important;
+            font-size: 1.25rem;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .top-menu-item.back-to-panel {
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Настройка Telegram User Bot</h2>
+        </div>
+    </div>
+    
+    <div class="container mt-4" style="margin-top: 80px !important;">
+        <div class="mb-4">
+            <p class="text-muted">Настройте User Bot для отправки сообщений от имени вашего аккаунта Telegram</p>
+        </div>
+
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0 text-white"><i class="bi bi-info-circle"></i> Инструкция по настройке</h5>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li class="mb-3">
+                        <strong>Получите API ID и API Hash:</strong>
+                        <ul>
+                            <li>Перейдите на <a href="https://my.telegram.org/apps" target="_blank">https://my.telegram.org/apps</a></li>
+                            <li>Войдите в свой аккаунт Telegram (используйте номер телефона)</li>
+                            <li>Создайте новое приложение:
+                                <ul>
+                                    <li>Укажите название приложения (любое, например "Audit Bot")</li>
+                                    <li>Укажите короткое имя (любое, например "audit")</li>
+                                    <li>Выберите платформу (Desktop)</li>
+                                    <li>Оставьте URL пустым</li>
+                                </ul>
+                            </li>
+                            <li>После создания вы получите <strong>API ID</strong> (число) и <strong>API Hash</strong> (строка)</li>
+                        </ul>
+                    </li>
+                    <li class="mb-3">
+                        <strong>Установите зависимости (если еще не установлены):</strong>
+                        <pre class="bg-light p-2 rounded"><code>pip install pyrogram tgcrypto</code></pre>
+                    </li>
+                    <li class="mb-3">
+                        <strong>Заполните форму ниже:</strong>
+                        <ul>
+                            <li>Введите полученные API ID и API Hash</li>
+                            <li>Введите номер телефона в формате +79991234567</li>
+                            <li>Нажмите "Сохранить настройки"</li>
+                        </ul>
+                    </li>
+                    <li class="mb-3">
+                        <strong>Проверьте подключение:</strong>
+                        <ul>
+                            <li>Нажмите кнопку "Проверить подключение"</li>
+                            <li>При первом подключении в консоли сервера появится запрос на ввод кода подтверждения</li>
+                            <li>Код придет в Telegram (в приложение Telegram на вашем телефоне)</li>
+                            <li>Введите код в консоль сервера</li>
+                            <li>Если включена двухфакторная аутентификация, введите пароль</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong>Готово!</strong> После успешной авторизации сообщения будут отправляться от имени вашего аккаунта.
+                    </li>
+                </ol>
+                <div class="alert alert-warning mt-3">
+                    <i class="bi bi-exclamation-triangle"></i> <strong>Важно:</strong> Файл сессии (<code>telegram_user_session.session</code>) содержит данные для авторизации. Не передавайте его третьим лицам и не добавляйте в репозиторий.
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-gear"></i> Настройки</h5>
+            </div>
+            <div class="card-body">
+                <form id="userBotSettingsForm">
+                    <div class="mb-3">
+                        <label for="apiId" class="form-label">API ID <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="apiId" placeholder="12345678" required>
+                        <small class="form-text text-muted">Число, полученное на my.telegram.org/apps</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="apiHash" class="form-label">API Hash <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="apiHash" placeholder="abcdef1234567890abcdef1234567890" required>
+                        <small class="form-text text-muted">Строка, полученная на my.telegram.org/apps</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="phoneNumber" class="form-label">Номер телефона <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="phoneNumber" placeholder="+79991234567" required>
+                        <small class="form-text text-muted">Номер телефона в международном формате (начинается с +)</small>
+                    </div>
+                    
+                    <div id="settingsStatus" class="mt-3"></div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" id="saveSettingsBtn">
+                            <i class="bi bi-save"></i> Сохранить настройки
+                        </button>
+                        <button type="button" class="btn btn-success" id="testConnectionBtn">
+                            <i class="bi bi-check-circle"></i> Проверить подключение
+                        </button>
+                        <button type="button" class="btn btn-warning" id="disconnectBtn">
+                            <i class="bi bi-x-circle"></i> Отключить
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Статус</h5>
+            </div>
+            <div class="card-body">
+                <div id="statusInfo">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    Загрузка статуса...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/admin/settings/user_bot');
+                const data = await response.json();
+                
+                if (data.success) {
+                    $('#apiId').val(data.settings.telegram_api_id || '');
+                    $('#apiHash').val(data.settings.telegram_api_hash || '');
+                    $('#phoneNumber').val(data.settings.telegram_phone_number || '');
+                    
+                    updateStatus(data);
+                } else {
+                    $('#statusInfo').html('<div class="alert alert-danger">Ошибка загрузки настроек</div>');
+                }
+            } catch (error) {
+                
+                $('#statusInfo').html('<div class="alert alert-danger">Ошибка загрузки настроек: ' + error.message + '</div>');
+            }
+        }
+
+
+        function updateStatus(data) {
+            let statusHtml = '';
+            
+            if (data.is_configured) {
+                statusHtml += '<div class="alert alert-success mb-2">';
+                statusHtml += '<i class="bi bi-check-circle"></i> <strong>Настройки заполнены</strong>';
+                statusHtml += '</div>';
+            } else {
+                statusHtml += '<div class="alert alert-warning mb-2">';
+                statusHtml += '<i class="bi bi-exclamation-triangle"></i> <strong>Настройки не заполнены</strong>';
+                statusHtml += '</div>';
+            }
+            
+            if (data.has_session) {
+                statusHtml += '<div class="alert alert-info mb-2">';
+                statusHtml += '<i class="bi bi-info-circle"></i> <strong>Сессия найдена</strong> - User Bot был авторизован ранее';
+                statusHtml += '</div>';
+            } else {
+                statusHtml += '<div class="alert alert-secondary mb-2">';
+                statusHtml += '<i class="bi bi-info-circle"></i> <strong>Сессия не найдена</strong> - требуется первичная авторизация';
+                statusHtml += '</div>';
+            }
+            
+            $('#statusInfo').html(statusHtml);
+        }
+
+
+        $('#userBotSettingsForm').on('submit', async function(e) {
+            e.preventDefault();
+            
+            const apiId = $('#apiId').val().trim();
+            const apiHash = $('#apiHash').val().trim();
+            const phoneNumber = $('#phoneNumber').val().trim();
+            
+            if (!apiId || !apiHash || !phoneNumber) {
+                $('#settingsStatus').html('<div class="alert alert-warning">Заполните все поля</div>');
+                return;
+            }
+            
+            if (!phoneNumber.startsWith('+')) {
+                $('#settingsStatus').html('<div class="alert alert-warning">Номер телефона должен начинаться с +</div>');
+                return;
+            }
+            
+            $('#saveSettingsBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Сохранение...');
+            $('#settingsStatus').html('');
+            
+            try {
+                const response = await fetch('/api/admin/settings/user_bot', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        api_id: apiId,
+                        api_hash: apiHash,
+                        phone_number: phoneNumber
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    $('#settingsStatus').html('<div class="alert alert-success">' + data.message + '</div>');
+                    setTimeout(() => {
+                        loadSettings();
+                    }, 1000);
+                } else {
+                    $('#settingsStatus').html('<div class="alert alert-danger">' + (data.error || 'Ошибка сохранения') + '</div>');
+                }
+            } catch (error) {
+                $('#settingsStatus').html('<div class="alert alert-danger">Ошибка: ' + error.message + '</div>');
+            } finally {
+                $('#saveSettingsBtn').prop('disabled', false).html('<i class="bi bi-save"></i> Сохранить настройки');
+            }
+        });
+
+
+        $('#testConnectionBtn').on('click', async function() {
+            $('#testConnectionBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Проверка...');
+            $('#settingsStatus').html('');
+            
+            try {
+                const response = await fetch('/api/admin/settings/user_bot/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                }).catch(networkError => {
+
+                    throw new Error('Не удалось подключиться к серверу. Проверьте, что сервер запущен и доступен. ' + (networkError.message || ''));
+                });
+                
+                if (!response) {
+                    throw new Error('Сервер не ответил на запрос');
+                }
+                
+                let data;
+                try {
+                    const responseText = await response.text();
+                    if (!responseText) {
+                        throw new Error('Пустой ответ от сервера');
+                    }
+                    data = JSON.parse(responseText);
+                } catch (jsonError) {
+
+                    $('#settingsStatus').html('<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> <strong>Ошибка сервера:</strong> ' + (response.statusText || 'Неизвестная ошибка') + ' (HTTP ' + response.status + ')</div>');
+                    $('#testConnectionBtn').prop('disabled', false).html('<i class="bi bi-check-circle"></i> Проверить подключение');
+                    return;
+                }
+                
+                if (response.ok && data.success) {
+                    let message = '<div class="alert alert-success">';
+                    message += '<i class="bi bi-check-circle"></i> <strong>' + data.message + '</strong>';
+                    if (data.user_info) {
+                        message += '<br><small>ID: ' + data.user_info.id + ', Имя: ' + data.user_info.first_name;
+                        if (data.user_info.username) {
+                            message += ', Username: @' + data.user_info.username;
+                        }
+                        message += '</small>';
+                    }
+                    message += '</div>';
+                    $('#settingsStatus').html(message);
+                    setTimeout(() => {
+                        loadSettings();
+                    }, 1000);
+                } else {
+                    const errorMsg = data.error || data.message || 'Ошибка проверки подключения';
+                    let alertClass = 'alert-danger';
+                    let icon = '<i class="bi bi-exclamation-triangle"></i>';
+                    
+
+                    if (errorMsg.includes('Требуется авторизация') || errorMsg.includes('confirmation code')) {
+                        alertClass = 'alert-info';
+                        icon = '<i class="bi bi-info-circle"></i>';
+                    }
+                    
+                    $('#settingsStatus').html('<div class="alert ' + alertClass + '">' + icon + ' <strong>' + (alertClass === 'alert-info' ? 'Информация:' : 'Ошибка:') + '</strong> ' + errorMsg + '</div>');
+                }
+            } catch (error) {
+                
+                let errorMessage = error.message || 'Неизвестная ошибка';
+                
+
+                if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+                    errorMessage = 'Не удалось подключиться к серверу. Убедитесь, что сервер запущен и доступен по адресу ' + window.location.origin;
+                } else if (errorMessage.includes('CORS')) {
+                    errorMessage = 'Ошибка CORS. Проверьте настройки сервера.';
+                }
+                
+                $('#settingsStatus').html('<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> <strong>Ошибка:</strong> ' + errorMessage + '</div>');
+            } finally {
+                $('#testConnectionBtn').prop('disabled', false).html('<i class="bi bi-check-circle"></i> Проверить подключение');
+            }
+        });
+
+
+        $('#disconnectBtn').on('click', async function() {
+            if (!confirm('Вы уверены, что хотите отключить User Bot?')) {
+                return;
+            }
+            
+            $('#disconnectBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Отключение...');
+            
+            try {
+                const response = await fetch('/api/admin/settings/user_bot/disconnect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    $('#settingsStatus').html('<div class="alert alert-success">' + data.message + '</div>');
+                    setTimeout(() => {
+                        loadSettings();
+                    }, 1000);
+                } else {
+                    $('#settingsStatus').html('<div class="alert alert-danger">' + (data.error || 'Ошибка отключения') + '</div>');
+                }
+            } catch (error) {
+                $('#settingsStatus').html('<div class="alert alert-danger">Ошибка: ' + error.message + '</div>');
+            } finally {
+                $('#disconnectBtn').prop('disabled', false).html('<i class="bi bi-x-circle"></i> Отключить');
+            }
+        });
+
+
+        $(document).ready(function() {
+            loadSettings();
+        });
+    </script>
+
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+</body>
+</html>
+

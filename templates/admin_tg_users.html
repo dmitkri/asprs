@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>Telegram пользователи - АСПиРС</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/consta-dragndrop.css">
+    <link rel="stylesheet" href="/static/css/consta-button.css">
+    <link rel="stylesheet" href="/static/css/design-system.css">
+    <link rel="stylesheet" href="/static/style.css?v=4">
+    <style>
+        /* Стили для заголовка в верхнем меню */
+        .top-menu-content {
+            position: relative;
+        }
+        .top-menu-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff !important;
+            font-size: 1.25rem;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .top-menu-item.back-to-panel {
+            margin-right: auto;
+        }
+        /* Мягкий красный цвет для статуса "Не зарегистрирован" */
+        .badge.bg-unregistered {
+            background-color: #f8d7da !important;
+            color: #721c24 !important;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="top-menu-bar">
+        <div class="top-menu-content">
+            <a href="/admin" class="top-menu-item back-to-panel">
+                <i class="bi bi-arrow-left"></i>
+                <span>Назад в панель</span>
+            </a>
+            <h2 class="top-menu-title">Telegram username студентов</h2>
+            <button id="importBtn" class="top-menu-item" data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="bi bi-upload"></i>
+                <span>Импорт Excel</span>
+            </button>
+            {% if admin_role == 'admin' or admin_role == 'super_admin' %}
+            <button id="exportBtn" class="top-menu-item">
+                <i class="bi bi-file-earmark-excel"></i>
+                <span>Экспорт Excel</span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="container mt-4" style="margin-top: 80px !important;">
+
+        
+        <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="importModalLabel">Импорт Telegram username</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">Excel файл должен содержать колонки:</p>
+                        <ul>
+                            <li><strong>ФИО</strong> - для идентификации студента</li>
+                            <li><strong>Username</strong> - Telegram username</li>
+                        </ul>
+                        <div class="mb-3">
+                            <a href="/static/tg_import_template.xlsx" class="btn btn-outline-primary btn-sm" download>
+                                <i class="bi bi-download"></i> Скачать шаблон
+                            </a>
+                        </div>
+                        <form id="importForm" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <div class="consta-dragndrop-container">
+                                    <input type="file" id="importFile" accept=".xlsx,.xls" required>
+                                </div>
+                                <small class="form-text text-muted mt-2 d-block">
+                                    Поддерживаемые форматы: .xlsx, .xls
+                                </small>
+                            </div>
+                        </form>
+                        <div id="importStatus" class="mt-3"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="button" class="btn btn-primary" id="submitImportBtn">
+                            <i class="bi bi-upload"></i> Импортировать
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="modal fade" id="replaceModal" tabindex="-1" aria-labelledby="replaceModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="replaceModalLabel">Подтверждение замены username</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Обнаружены записи, где username отличается от текущего в базе. Подтвердите замену:</p>
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>ФИО</th>
+                                        <th>Текущий username</th>
+                                        <th>Новый username</th>
+                                        <th>
+                                            <input type="checkbox" id="selectAllReplace" checked>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="replaceTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="replaceStatus" class="mt-3"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="button" class="btn btn-warning" id="confirmReplaceBtn">
+                            <i class="bi bi-check-circle"></i> Заменить выбранные
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="text" id="searchInput" class="form-control" placeholder="Поиск по ФИО, username, телефону, группе...">
+                    </div>
+                    <div class="col-md-6">
+                        <select id="filterSelect" class="form-select">
+                            <option value="all">Все студенты</option>
+                            <option value="registered">Зарегистрированные</option>
+                            <option value="unregistered">Не зарегистрированные</option>
+                            <option value="username_mismatch">Несоответствие username</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="text-muted mb-3">
+                    <span id="usersCount">Всего: 0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>ФИО</th>
+                                <th>Телефон</th>
+                                <th>Группа</th>
+                                <th>Комната</th>
+                                <th>Username в базе</th>
+                                <th>ID Telegram</th>
+                                <th>Username Telegram</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Загрузка...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allUsers = [];
+
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/tg_users');
+                
+
+                if (!response.ok) {
+                    
+                    $('#usersTableBody').html('<tr><td colspan="8" class="text-center text-danger">Ошибка загрузки данных</td></tr>');
+                    return;
+                }
+                
+
+                const text = await response.text();
+                if (!text || text.trim() === '') {
+                    
+                    $('#usersTableBody').html('<tr><td colspan="8" class="text-center text-danger">Пустой ответ от сервера</td></tr>');
+                    return;
+                }
+                
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    
+                    $('#usersTableBody').html('<tr><td colspan="8" class="text-center text-danger">Ошибка обработки данных</td></tr>');
+                    return;
+                }
+                
+                if (data.success) {
+                    allUsers = data.users;
+                    renderUsers(allUsers);
+                } else {
+                    $('#usersTableBody').html('<tr><td colspan="8" class="text-center text-danger">Ошибка загрузки данных</td></tr>');
+                }
+            } catch (error) {
+                
+                $('#usersTableBody').html('<tr><td colspan="9" class="text-center text-danger">Ошибка загрузки данных</td></tr>');
+            }
+        }
+
+
+        function renderUsers(users) {
+            const tbody = $('#usersTableBody');
+            tbody.empty();
+
+            if (users.length === 0) {
+                tbody.html('<tr><td colspan="8" class="text-center text-muted">Студенты не найдены</td></tr>');
+                $('#usersCount').text('Всего: 0');
+                return;
+            }
+
+            $('#usersCount').text(`Всего: ${users.length}`);
+
+            users.forEach(user => {
+
+                let statusBadge;
+                if (!user.is_registered) {
+
+                    statusBadge = '<span class="badge bg-unregistered">Не зарегистрирован</span>';
+                } else if (user.username_match) {
+
+                    statusBadge = '<span class="badge bg-success">✓ Зарегистрирован</span>';
+                } else {
+
+                    statusBadge = '<span class="badge bg-warning">⚠ Несоответствие username</span>';
+                }
+
+                const row = `
+                    <tr>
+                        <td>${user.fio}</td>
+                        <td>${user.phone}</td>
+                        <td>${user.group_name}</td>
+                        <td>${user.room}</td>
+                        <td>${user.student_tg_username}</td>
+                        <td>${user.tg_user_id || '-'}</td>
+                        <td>${user.tg_username || '-'}</td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+
+
+        function filterUsers() {
+            const searchText = $('#searchInput').val().toLowerCase();
+            const filterValue = $('#filterSelect').val();
+
+            let filtered = allUsers;
+
+
+            if (filterValue === 'registered') {
+                filtered = filtered.filter(u => u.is_registered && u.username_match);
+            } else if (filterValue === 'unregistered') {
+                filtered = filtered.filter(u => !u.is_registered);
+            } else if (filterValue === 'username_mismatch') {
+                filtered = filtered.filter(u => u.is_registered && !u.username_match);
+            }
+
+
+            if (searchText) {
+                filtered = filtered.filter(u => 
+                    (u.fio && u.fio.toLowerCase().includes(searchText)) ||
+                    (u.tg_username && u.tg_username.toLowerCase().includes(searchText)) ||
+                    (u.phone && u.phone.includes(searchText)) ||
+                    (u.group_name && u.group_name.toLowerCase().includes(searchText))
+                );
+            }
+
+            renderUsers(filtered);
+        }
+
+
+        $('#exportBtn').on('click', function() {
+            window.location.href = '/api/admin/tg_users/export';
+        });
+
+
+        $('#importModal').on('hide.bs.modal', function() {
+
+            $(this).find('.btn-close').blur();
+            $(this).find('button').blur();
+        });
+        
+        $('#replaceModal').on('hide.bs.modal', function() {
+
+            $(this).find('.btn-close').blur();
+            $(this).find('button').blur();
+        });
+
+
+        $('#submitImportBtn').on('click', async function() {
+            const fileInput = $('#importFile')[0];
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                $('#importStatus').html('<div class="alert alert-warning">Добавьте файл для импорта</div>');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            $('#submitImportBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Импорт...');
+            $('#importStatus').html('');
+            
+            try {
+                const response = await fetch('/api/admin/tg_users/import', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+
+                const text = await response.text();
+                
+
+                if (!response.ok) {
+                    let errorMessage = `Ошибка сервера: ${response.status} ${response.statusText}`;
+                    if (text && text.trim()) {
+                        try {
+                            const errorData = JSON.parse(text);
+                            errorMessage = errorData.error || errorMessage;
+                        } catch (e) {
+
+                            errorMessage = text;
+                        }
+                    }
+                    $('#importStatus').html(`<div class="alert alert-danger"><strong>Ошибка:</strong> ${errorMessage}</div>`);
+                    return;
+                }
+                
+
+                if (!text || text.trim() === '') {
+                    $('#importStatus').html('<div class="alert alert-danger"><strong>Ошибка:</strong> Пустой ответ от сервера</div>');
+                    return;
+                }
+                
+
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    $('#importStatus').html(`<div class="alert alert-danger"><strong>Ошибка:</strong> Неверный формат ответа от сервера: ${e.message}</div>`);
+                    return;
+                }
+                
+                if (data.success) {
+                    let statusHtml = '<div class="alert alert-success">';
+                    statusHtml += `<strong>Импорт завершен!</strong><br><br>`;
+                    
+
+                    if (data.inserted > 0) {
+                        statusHtml += `✅ Вставлено новых username: ${data.inserted}<br>`;
+                    }
+                    if (data.skipped > 0) {
+                        statusHtml += `⏭️ Пропущено (username идентичен): ${data.skipped}<br>`;
+                    }
+                    if (data.not_found > 0) {
+                        statusHtml += `❌ Не найдено студентов: ${data.not_found}<br>`;
+                    }
+                    
+
+                    const total = (data.inserted || 0) + (data.skipped || 0) + (data.to_replace?.length || 0);
+                    statusHtml += `<br><strong>Всего обработано: ${total} записей</strong><br>`;
+                    
+                    if (data.errors && data.errors.length > 0) {
+                        statusHtml += `<br><strong>Ошибки:</strong><ul class="mb-0">`;
+                        data.errors.forEach(error => {
+                            statusHtml += `<li class="small">${error}</li>`;
+                        });
+                        statusHtml += `</ul>`;
+                        if (data.errors.length >= 20) {
+                            statusHtml += `<small class="text-muted">... и еще ошибок (показаны первые 20)</small>`;
+                        }
+                    }
+                    statusHtml += '</div>';
+                    $('#importStatus').html(statusHtml);
+                    
+
+                    if (data.to_replace && data.to_replace.length > 0) {
+
+                        const importModal = bootstrap.Modal.getInstance($('#importModal')[0]);
+                        if (importModal) {
+                            importModal.hide();
+                        }
+                        
+
+                        showReplaceModal(data.to_replace);
+                    } else {
+
+                        setTimeout(() => {
+                            loadUsers();
+                        }, 1000);
+                        
+
+                        setTimeout(() => {
+                            const modal = bootstrap.Modal.getInstance($('#importModal')[0]);
+                            if (modal) {
+                                modal.hide();
+                            }
+                            $('#importForm')[0].reset();
+                            $('#importStatus').html('');
+                        }, 3000);
+                    }
+                } else {
+                    $('#importStatus').html(`<div class="alert alert-danger"><strong>Ошибка:</strong> ${data.error || 'Неизвестная ошибка'}</div>`);
+                }
+            } catch (error) {
+                $('#importStatus').html(`<div class="alert alert-danger"><strong>Ошибка:</strong> ${error.message}</div>`);
+            } finally {
+                $('#submitImportBtn').prop('disabled', false).html('<i class="bi bi-upload"></i> Импортировать');
+            }
+        });
+
+
+        let pendingReplacements = [];
+        
+        function showReplaceModal(toReplace) {
+            pendingReplacements = toReplace;
+            const tbody = $('#replaceTableBody');
+            tbody.empty();
+            
+            toReplace.forEach((item, index) => {
+                const row = `
+                    <tr>
+                        <td>${item.fio}</td>
+                        <td><code>${item.current_username || '(пусто)'}</code></td>
+                        <td><code>${item.new_username}</code></td>
+                        <td>
+                            <input type="checkbox" class="replace-checkbox" data-index="${index}" checked>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+            
+
+            const replaceModal = new bootstrap.Modal($('#replaceModal')[0]);
+            replaceModal.show();
+        }
+        
+
+        $('#selectAllReplace').on('change', function() {
+            $('.replace-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+
+        $('#confirmReplaceBtn').on('click', async function() {
+            const checkedBoxes = $('.replace-checkbox:checked');
+            const selectedReplacements = [];
+            
+            checkedBoxes.each(function() {
+                const index = $(this).data('index');
+                const item = pendingReplacements[index];
+                if (item) {
+                    selectedReplacements.push({
+                        employee_id: item.employee_id,
+                        new_username: item.new_username
+                    });
+                }
+            });
+            
+            if (selectedReplacements.length === 0) {
+                $('#replaceStatus').html('<div class="alert alert-warning">Выберите хотя бы одну запись для замены</div>');
+                return;
+            }
+            
+            $('#confirmReplaceBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Замена...');
+            $('#replaceStatus').html('');
+            
+            try {
+                const response = await fetch('/api/admin/tg_users/confirm_replace', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({replacements: selectedReplacements})
+                });
+                
+
+                const text = await response.text();
+                
+
+                if (!response.ok) {
+                    let errorMessage = `Ошибка сервера: ${response.status} ${response.statusText}`;
+                    if (text && text.trim()) {
+                        try {
+                            const errorData = JSON.parse(text);
+                            errorMessage = errorData.error || errorMessage;
+                        } catch (e) {
+
+                            errorMessage = text;
+                        }
+                    }
+                    $('#replaceStatus').html(`<div class="alert alert-danger"><strong>Ошибка:</strong> ${errorMessage}</div>`);
+                    return;
+                }
+                
+
+                if (!text || text.trim() === '') {
+                    $('#replaceStatus').html('<div class="alert alert-danger"><strong>Ошибка:</strong> Пустой ответ от сервера</div>');
+                    return;
+                }
+                
+
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    $('#replaceStatus').html(`<div class="alert alert-danger"><strong>Ошибка:</strong> Неверный формат ответа от сервера: ${e.message}</div>`);
+                    return;
+                }
+                
+                if (data.success) {
+                    let statusHtml = '<div class="alert alert-success">';
+                    statusHtml += `<strong>Замена выполнена!</strong><br>`;
+                    statusHtml += `Обновлено записей: ${data.updated}<br>`;
+                    if (data.not_found > 0) {
+                        statusHtml += `Не найдено: ${data.not_found}<br>`;
+                    }
+                    if (data.errors && data.errors.length > 0) {
+                        statusHtml += `<br><strong>Ошибки:</strong><ul class="mb-0">`;
+                        data.errors.forEach(error => {
+                            statusHtml += `<li class="small">${error}</li>`;
+                        });
+                        statusHtml += `</ul>`;
+                    }
+                    statusHtml += '</div>';
+                    $('#replaceStatus').html(statusHtml);
+                    
+
+                    setTimeout(() => {
+                        loadUsers();
+                    }, 1000);
+                    
+
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance($('#replaceModal')[0]);
+                        if (modal) {
+                            modal.hide();
+                        }
+                        $('#replaceStatus').html('');
+                        pendingReplacements = [];
+                    }, 2000);
+                } else {
+                    $('#replaceStatus').html(`<div class="alert alert-danger"><strong>Ошибка:</strong> ${data.error || 'Неизвестная ошибка'}</div>`);
+                }
+            } catch (error) {
+                $('#replaceStatus').html(`<div class="alert alert-danger"><strong>Ошибка:</strong> ${error.message}</div>`);
+            } finally {
+                $('#confirmReplaceBtn').prop('disabled', false).html('<i class="bi bi-check-circle"></i> Заменить выбранные');
+            }
+        });
+
+
+        $('#searchInput').on('input', filterUsers);
+        $('#filterSelect').on('change', filterUsers);
+
+
+        $(document).ready(function() {
+            loadUsers();
+        });
+    </script>
+    
+    
+    <script src="/static/js/consta-dragndrop.js"></script>
+    
+    <footer class="page-footer">
+        <div class="page-footer-text">АСПиРС - Российская разработка для ВУЗов и ССУЗов</div>
+    </footer>
+</body>
+</html>
+

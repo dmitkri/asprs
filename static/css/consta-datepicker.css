@@ -1,0 +1,322 @@
+
+
+
+.consta-datepicker-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.consta-datepicker-wrapper input[type="date"],
+.consta-datepicker-wrapper input[type="month"],
+.consta-datepicker-wrapper input.flatpickr-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    color: #000000;
+    background-color: #ffffff;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.consta-datepicker-wrapper input[type="date"]:hover,
+.consta-datepicker-wrapper input[type="month"]:hover,
+.consta-datepicker-wrapper input.flatpickr-input:hover {
+    border-color: #8b8b8b;
+}
+
+.consta-datepicker-wrapper input[type="date"]:focus,
+.consta-datepicker-wrapper input[type="month"]:focus,
+.consta-datepicker-wrapper input.flatpickr-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.consta-datepicker-wrapper input[type="date"]:disabled,
+.consta-datepicker-wrapper input[type="month"]:disabled,
+.consta-datepicker-wrapper input.flatpickr-input:disabled {
+    background-color: #f5f5f5;
+    color: #8b8b8b;
+    cursor: not-allowed;
+    border-color: #e5e7eb;
+}
+
+
+.flatpickr-calendar.consta-theme {
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+    padding: 12px;
+    width: 300px;
+    z-index: 10000;
+}
+
+.modal .flatpickr-calendar.consta-theme {
+    z-index: 10050 !important;
+    position: fixed !important;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-months {
+    padding: 8px 0 12px 0;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-month {
+    color: #000000;
+    fill: #000000;
+    height: 44px;
+    line-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-current-month {
+    font-size: 16px;
+    font-weight: 600;
+    color: #000000;
+    padding: 0;
+    line-height: 1.5;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-prev-month,
+.flatpickr-calendar.consta-theme .flatpickr-next-month {
+    fill: #6b7280;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-prev-month:hover,
+.flatpickr-calendar.consta-theme .flatpickr-next-month:hover {
+    fill: #000000;
+    background-color: #f3f4f6;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-prev-month svg,
+.flatpickr-calendar.consta-theme .flatpickr-next-month svg {
+    width: 16px;
+    height: 16px;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-weekdays {
+    background: transparent;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 8px 0;
+    margin-bottom: 4px;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-weekday {
+    color: #000000;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 32px;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-days {
+    padding: 4px 0;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-day {
+    color: #000000;
+    border-radius: 6px;
+    border: none;
+    height: 36px;
+    line-height: 36px;
+    margin: 2px;
+    font-size: 14px;
+    font-weight: 400;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-day:hover {
+    background-color: #f3f4f6;
+    color: #000000;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-day.selected {
+    background-color: #007bff;
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-day.selected:hover {
+    background-color: #0056b3;
+    box-shadow: 0 2px 6px rgba(0, 123, 255, 0.4);
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-day.today {
+    border: 2px solid #007bff;
+    color: #007bff;
+    font-weight: 600;
+    background-color: transparent;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-day.today:hover {
+    background-color: #e7f3ff;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-day.flatpickr-disabled,
+.flatpickr-calendar.consta-theme .flatpickr-day.prev-month-day,
+.flatpickr-calendar.consta-theme .flatpickr-day.next-month-day {
+    color: #d1d5db;
+    cursor: not-allowed;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-day.flatpickr-disabled:hover {
+    background-color: transparent;
+}
+
+
+.flatpickr-calendar.consta-theme.animate.open {
+    animation: constaCalendarFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes constaCalendarFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+
+.flatpickr-calendar.consta-theme .flatpickr-monthDropdown-months {
+    font-size: 16px;
+    font-weight: 600;
+    color: #000000;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month {
+    background-color: transparent;
+    border-radius: 4px;
+    padding: 4px 8px;
+    transition: all 0.2s ease;
+}
+
+.flatpickr-calendar.consta-theme .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month:hover {
+    background-color: #f3f4f6;
+}
+
+
+@media (max-width: 576px) {
+    .flatpickr-calendar.consta-theme {
+        width: calc(100vw - 32px);
+        max-width: 320px;
+        padding: 8px;
+    }
+    
+    .flatpickr-calendar.consta-theme .flatpickr-day {
+        height: 40px;
+        line-height: 40px;
+        font-size: 15px;
+    }
+}
+
+
+
+.modal .consta-datepicker-wrapper input[type="date"],
+.modal .consta-datepicker-wrapper input[type="month"],
+.modal .consta-datepicker-wrapper input.flatpickr-input {
+    background-color: #ffffff !important;
+    border-color: #d9d9d9 !important;
+    color: #000000 !important;
+}
+
+.modal .consta-datepicker-wrapper input[type="date"]:hover,
+.modal .consta-datepicker-wrapper input[type="month"]:hover,
+.modal .consta-datepicker-wrapper input.flatpickr-input:hover {
+    border-color: #8b8b8b !important;
+}
+
+.modal .flatpickr-calendar.consta-theme {
+    background: #ffffff !important;
+    border-color: #e5e7eb !important;
+    z-index: 10050 !important;
+    position: fixed !important;
+}
+
+.modal.show .flatpickr-calendar.consta-theme {
+    z-index: 10060 !important;
+}
+
+.modal-backdrop {
+    z-index: 1040;
+}
+
+.modal {
+    z-index: 1050;
+}
+
+.modal .flatpickr-calendar.consta-theme .flatpickr-month {
+    color: #000000 !important;
+    fill: #000000 !important;
+}
+
+.modal .flatpickr-calendar.consta-theme .flatpickr-current-month {
+    color: #000000 !important;
+}
+
+.modal .flatpickr-calendar.consta-theme .flatpickr-prev-month,
+.modal .flatpickr-calendar.consta-theme .flatpickr-next-month {
+    fill: #6b7280 !important;
+}
+
+.modal .flatpickr-calendar.consta-theme .flatpickr-prev-month:hover,
+.modal .flatpickr-calendar.consta-theme .flatpickr-next-month:hover {
+    fill: #000000 !important;
+}
+
+.modal .flatpickr-calendar.consta-theme .flatpickr-weekday {
+    color: #000000 !important;
+}
+
+.modal .flatpickr-calendar.consta-theme .flatpickr-day {
+    color: #000000 !important;
+}
+
+.modal .flatpickr-calendar.consta-theme .flatpickr-day:hover {
+    background-color: #f3f4f6 !important;
+    color: #000000 !important;
+}
+
+.modal .flatpickr-calendar.consta-theme .flatpickr-day.selected {
+    background-color: #007bff !important;
+    color: #ffffff !important;
+}
+
+.modal .flatpickr-calendar.consta-theme .flatpickr-day.today {
+    border-color: #007bff !important;
+    color: #007bff !important;
+    background-color: transparent !important;
+}
+
+.modal .flatpickr-calendar.consta-theme .flatpickr-day.today:hover {
+    background-color: #e7f3ff !important;
+}
