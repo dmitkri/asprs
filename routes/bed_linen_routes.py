@@ -8,6 +8,9 @@ import secrets
 import io
 import os
 import sqlite3
+import logging
+
+logger = logging.getLogger(__name__)
 
 bed_linen_bp = Blueprint('bed_linen', __name__)
 
@@ -624,7 +627,7 @@ def api_send_bed_linen_reminders():
                     'student': student
                 })
             except Exception as e:
-                print(f"Ошибка подготовки сообщения для студента {student.get('fio', 'Unknown')}: {e}")
+                logger.warning(f"Ошибка подготовки сообщения для студента {student.get('fio', 'Unknown')}: {e}", exc_info=True)
         
         sent_count = 0
         failed_count = 0
@@ -667,9 +670,9 @@ def api_send_bed_linen_reminders():
                                 sent_count += 1
                                 failed_count -= 1
                         except Exception as fallback_err:
-                            print(f"Ошибка при отправке через Bot API для {student_fio}: {fallback_err}")
+                            logger.warning(f"Ошибка при отправке через Bot API для {student_fio}: {fallback_err}", exc_info=True)
             except Exception as batch_err:
-                print(f"Ошибка при пакетной отправке, переходим на обычную отправку: {batch_err}")
+                logger.warning(f"Ошибка при пакетной отправке, переходим на обычную отправку: {batch_err}", exc_info=True)
                 # Fallback на обычную отправку
                 for msg_data in messages_to_send:
                     try:
@@ -682,7 +685,7 @@ def api_send_bed_linen_reminders():
                             else:
                                 failure_reasons.append(f"{msg_data['student']['fio']} ({msg_data['chat_id']}): {str(err)}")
                         except Exception as err:
-                            print(f"Ошибка при отправке через User Bot: {err}")
+                            logger.warning(f"Ошибка при отправке через User Bot: {err}", exc_info=True)
                             try:
                                 success = telegram_service.send_notification(msg_data['chat_id'], msg_data['message'])
                                 if not success:
@@ -695,7 +698,7 @@ def api_send_bed_linen_reminders():
                         else:
                             failed_count += 1
                     except Exception as e:
-                        print(f"Ошибка отправки сообщения студенту {msg_data['student']['fio']}: {e}")
+                        logger.error(f"Ошибка отправки сообщения студенту {msg_data['student']['fio']}: {e}", exc_info=True)
                         failed_count += 1
                         failure_reasons.append(f"{msg_data['student']['fio']} ({msg_data['chat_id']}): {str(e)}")
         else:
@@ -721,7 +724,7 @@ def api_send_bed_linen_reminders():
                             if not success:
                                 failure_reasons.append(f"{msg_data['student']['fio']} ({msg_data['chat_id']}): Не удалось отправить через Bot API после ошибки User Bot")
                         except Exception as fallback_err:
-                            print(f"Ошибка при отправке через Bot API после ошибки User Bot: {fallback_err}")
+                            logger.warning(f"Ошибка при отправке через Bot API после ошибки User Bot: {fallback_err}", exc_info=True)
                             failure_reasons.append(f"{msg_data['student']['fio']} ({msg_data['chat_id']}): {str(fallback_err)}")
                     
                     if success:
@@ -729,7 +732,7 @@ def api_send_bed_linen_reminders():
                     else:
                         failed_count += 1
                 except Exception as e:
-                    print(f"Ошибка отправки сообщения студенту {msg_data['student']['fio']} (ID: {msg_data['chat_id']}): {e}")
+                    logger.error(f"Ошибка отправки сообщения студенту {msg_data['student']['fio']} (ID: {msg_data['chat_id']}): {e}", exc_info=True)
                     failed_count += 1
                     failure_reasons.append(f"{msg_data['student']['fio']} ({msg_data['chat_id']}): {str(e)}")
         
@@ -742,10 +745,8 @@ def api_send_bed_linen_reminders():
         }
         return jsonify(response_data)
     except Exception as e:
-        print(f"Ошибка в api_send_bed_linen_reminders: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logger.error(f"Ошибка в api_send_bed_linen_reminders: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Внутренняя ошибка сервера'}), 500
 
 
 @bed_linen_bp.route('/bed_linen/verify', methods=['POST'])
@@ -958,7 +959,7 @@ def api_send_custom_messages():
                     'student': student
                 })
             except Exception as e:
-                print(f"Ошибка подготовки сообщения для студента {student.get('fio', 'Unknown')}: {e}")
+                logger.warning(f"Ошибка подготовки сообщения для студента {student.get('fio', 'Unknown')}: {e}", exc_info=True)
         
         sent_count = 0
         failed_count = 0
@@ -999,9 +1000,9 @@ def api_send_custom_messages():
                                 sent_count += 1
                                 failed_count -= 1
                         except Exception as fallback_err:
-                            print(f"Ошибка при отправке через Bot API для {student_fio}: {fallback_err}")
+                            logger.warning(f"Ошибка при отправке через Bot API для {student_fio}: {fallback_err}", exc_info=True)
             except Exception as batch_err:
-                print(f"Ошибка при пакетной отправке, переходим на обычную отправку: {batch_err}")
+                logger.warning(f"Ошибка при пакетной отправке, переходим на обычную отправку: {batch_err}", exc_info=True)
                 # Fallback на обычную отправку
                 for msg_data in messages_to_send:
                     try:
@@ -1014,7 +1015,7 @@ def api_send_custom_messages():
                             else:
                                 failure_reasons.append(f"{msg_data['student']['fio']} ({msg_data['chat_id']}): {str(err)}")
                         except Exception as err:
-                            print(f"Ошибка при отправке через User Bot: {err}")
+                            logger.warning(f"Ошибка при отправке через User Bot: {err}", exc_info=True)
                             try:
                                 success = telegram_service.send_notification(msg_data['chat_id'], msg_data['message'])
                                 if not success:
@@ -1027,7 +1028,7 @@ def api_send_custom_messages():
                         else:
                             failed_count += 1
                     except Exception as e:
-                        print(f"Ошибка отправки сообщения студенту {msg_data['student']['fio']}: {e}")
+                        logger.error(f"Ошибка отправки сообщения студенту {msg_data['student']['fio']}: {e}", exc_info=True)
                         failed_count += 1
                         failure_reasons.append(f"{msg_data['student']['fio']} ({msg_data['chat_id']}): {str(e)}")
         else:
@@ -1053,7 +1054,7 @@ def api_send_custom_messages():
                             if not success:
                                 failure_reasons.append(f"{msg_data['student']['fio']} ({msg_data['chat_id']}): Не удалось отправить через Bot API после ошибки User Bot")
                         except Exception as fallback_err:
-                            print(f"Ошибка при отправке через Bot API после ошибки User Bot: {fallback_err}")
+                            logger.warning(f"Ошибка при отправке через Bot API после ошибки User Bot: {fallback_err}", exc_info=True)
                             failure_reasons.append(f"{msg_data['student']['fio']} ({msg_data['chat_id']}): {str(fallback_err)}")
                     
                     if success:
@@ -1061,7 +1062,7 @@ def api_send_custom_messages():
                     else:
                         failed_count += 1
                 except Exception as e:
-                    print(f"Ошибка отправки сообщения студенту {msg_data['student']['fio']} (ID: {msg_data['chat_id']}): {e}")
+                    logger.error(f"Ошибка отправки сообщения студенту {msg_data['student']['fio']} (ID: {msg_data['chat_id']}): {e}", exc_info=True)
                     failed_count += 1
                     failure_reasons.append(f"{msg_data['student']['fio']} ({msg_data['chat_id']}): {str(e)}")
         
@@ -1074,9 +1075,7 @@ def api_send_custom_messages():
         }
         return jsonify(response_data)
     except Exception as e:
-        print(f"Ошибка в api_send_custom_messages: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Ошибка в api_send_custom_messages: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
     
     with get_db() as conn:
@@ -1292,9 +1291,7 @@ def api_bed_linen_verify_qr():
             'token': token
         })
     except Exception as e:
-        print(f"Ошибка в api_bed_linen_verify_qr: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Ошибка в api_bed_linen_verify_qr: {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': f'Ошибка сервера: {str(e)}'}), 500
 
 
@@ -1326,9 +1323,7 @@ def api_get_message_templates():
             
             return jsonify({'success': True, 'templates': result})
     except Exception as e:
-        print(f"Ошибка в api_get_message_templates: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Ошибка в api_get_message_templates: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1359,9 +1354,7 @@ def api_create_message_template():
         
         return jsonify({'success': True, 'message': 'Шаблон успешно создан'})
     except Exception as e:
-        print(f"Ошибка в api_create_message_template: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Ошибка в api_create_message_template: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1393,9 +1386,7 @@ def api_update_message_template(template_id):
         
         return jsonify({'success': True, 'message': 'Шаблон успешно обновлен'})
     except Exception as e:
-        print(f"Ошибка в api_update_message_template: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Ошибка в api_update_message_template: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1414,8 +1405,6 @@ def api_delete_message_template(template_id):
         
         return jsonify({'success': True, 'message': 'Шаблон успешно удален'})
     except Exception as e:
-        print(f"Ошибка в api_delete_message_template: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Ошибка в api_delete_message_template: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 

@@ -2,6 +2,9 @@ from flask import Blueprint, render_template, request, jsonify, session, redirec
 from werkzeug.security import check_password_hash
 from database import get_db
 from utils.auth import get_admin_role, has_permission
+import logging
+
+logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -10,11 +13,36 @@ def admin_login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
+        
+        if not username or not password:
+            flash('Неверный логин или пароль!')
+            return redirect(url_for('auth.admin_login'))
+        
         with get_db() as conn:
             admin = conn.execute(
                 'SELECT id, username, password_hash, role, is_active, fio, password_changed FROM admins WHERE username = ?',
                 (username,)
             ).fetchone()
+            
+            # Проверка на None перед обращением к полям
+            if admin is None:
+                logger.warning(f'Попытка входа с несуществующим логином: {username}')
+                flash('Неверный логин или пароль!')
+                return redirect(url_for('auth.admin_login'))
+            
+            # Проверка активности пользователя
+            if not admin['is_active']:
+                logger.warning(f'Попытка входа неактивного пользователя: {username}')
+                flash('Ваш аккаунт деактивирован!')
+                return redirect(url_for('auth.admin_login'))
+            
+            # Проверка пароля ПЕРЕД созданием сессии
+            if not check_password_hash(admin['password_hash'], password):
+                logger.warning(f'Неверный пароль для пользователя: {username}')
+                flash('Неверный логин или пароль!')
+                return redirect(url_for('auth.admin_login'))
+            
+            # Создание сессии только после успешной проверки пароля
             admin_fio = admin['fio'] if admin['fio'] else ''
             password_changed = admin['password_changed'] if admin['password_changed'] else 0
             session['admin_id'] = admin['id']
@@ -23,8 +51,9 @@ def admin_login():
             session['admin_fio'] = admin_fio
             session['admin'] = True
             session['password_changed'] = password_changed
+            
+            logger.info(f'Успешный вход пользователя: {username} (ID: {admin["id"]})')
             return redirect(url_for('admin_pages.admin_panel', change_password=1))
-        flash('Неверный логин или пароль!')
     role = session.get('admin_role', '')
     admin_fio = session.get('admin_fio', '')
     password_changed = session.get('password_changed', 1) or 1

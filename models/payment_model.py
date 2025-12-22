@@ -2,18 +2,27 @@ from database import get_db
 from typing import Optional, Dict, List
 from datetime import datetime
 from config import MOSCOW_TZ
+import sqlite3
+import logging
+
+logger = logging.getLogger(__name__)
 
 class PaymentModel:
     @staticmethod
     def create(data: Dict) -> Optional[int]:
         with get_db() as conn:
-            fields = list(data.keys())
-            placeholders = ', '.join(['?'] * len(fields))
-            values = list(data.values())
-            query = f"INSERT INTO dormitory_payments ({', '.join(fields)}) VALUES ({placeholders})"
-            cursor = conn.execute(query, values)
-            conn.commit()
-            return cursor.lastrowid
+            try:
+                fields = list(data.keys())
+                placeholders = ', '.join(['?'] * len(fields))
+                values = list(data.values())
+                query = f"INSERT INTO dormitory_payments ({', '.join(fields)}) VALUES ({placeholders})"
+                cursor = conn.execute(query, values)
+                conn.commit()
+                return cursor.lastrowid
+            except sqlite3.Error as e:
+                logger.error(f"Ошибка при создании платежа: {e}", exc_info=True)
+                conn.rollback()
+                raise
     
     @staticmethod
     def get_by_id(payment_id: int) -> Optional[Dict]:
@@ -39,14 +48,19 @@ class PaymentModel:
     def update_status(payment_id: int, status: str, admin_id: Optional[int] = None, 
                      comment: Optional[str] = None) -> bool:
         with get_db() as conn:
-            now = datetime.now(MOSCOW_TZ).isoformat()
-            conn.execute('''
-                UPDATE dormitory_payments
-                SET status = ?, audit_admin_id = ?, audit_comment = ?, audited_at = ?
-                WHERE id = ?
-            ''', (status, admin_id, comment, now, payment_id))
-            conn.commit()
-            return True
+            try:
+                now = datetime.now(MOSCOW_TZ).isoformat()
+                conn.execute('''
+                    UPDATE dormitory_payments
+                    SET status = ?, audit_admin_id = ?, audit_comment = ?, audited_at = ?
+                    WHERE id = ?
+                ''', (status, admin_id, comment, now, payment_id))
+                conn.commit()
+                return True
+            except sqlite3.Error as e:
+                logger.error(f"Ошибка при обновлении статуса платежа {payment_id}: {e}", exc_info=True)
+                conn.rollback()
+                raise
     
     @staticmethod
     def get_all(status: Optional[str] = None, payment_month: Optional[str] = None) -> List[Dict]:

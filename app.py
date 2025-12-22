@@ -7,13 +7,22 @@ import pandas as pd
 import re
 from werkzeug.utils import secure_filename
 from datetime import datetime, date, timedelta, timezone
+import logging
 
-MOSCOW_TZ = timezone(timedelta(hours=3))
+# Импорт конфигурации
+from config import (
+    SECRET_KEY, UPLOAD_FOLDER, UPLOAD_FOLDER_EXCEL, 
+    ALLOWED_EXTENSIONS, ALLOWED_EXCEL, MOSCOW_TZ
+)
+from utils.validators import parse_vacation_end
+
 import calendar
 import secrets
 import io
 import base64
 from werkzeug.security import generate_password_hash, check_password_hash
+
+logger = logging.getLogger(__name__)
 try:
     import qrcode
     QRCODE_AVAILABLE = True
@@ -33,15 +42,9 @@ except ImportError:
     REPORTLAB_AVAILABLE = False
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey123'
-UPLOAD_FOLDER = 'static/avatars'
-UPLOAD_FOLDER_EXCEL = 'uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(UPLOAD_FOLDER_EXCEL, exist_ok=True)
+app.secret_key = SECRET_KEY
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['UPLOAD_FOLDER_EXCEL'] = UPLOAD_FOLDER_EXCEL
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-ALLOWED_EXCEL = {'xlsx', 'xls'}
 
 fixedCols = ['fio', 'phone', 'group_name', 'birth_date']
 
@@ -56,41 +59,27 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-def parse_vacation_end(vacation_str):
-    if not vacation_str or '-' not in vacation_str:
-        return None
-    try:
-        end_part = vacation_str.split('-', 1)[1].strip()
-        parts = end_part.split()
-        if len(parts) >= 2:
-            time_str = parts[0]  # ЧЧ:ММ
-            date_str = parts[1]  # ДД.ММ.ГГГГ
-            date_obj = datetime.strptime(date_str, '%d.%m.%Y')
-            time_parts = time_str.split(':')
-            if len(time_parts) == 2:
-                hour = int(time_parts[0])
-                minute = int(time_parts[1])
-                date_obj = date_obj.replace(hour=hour, minute=minute, second=0, microsecond=0)
-            return date_obj
-        return None
-    except:
-        pass
-    return None
-
 def clean_expired_vacations():
-    today = datetime.today()
+    """Очистка истекших заявлений на отпуск"""
+    today = datetime.now(MOSCOW_TZ)
     with get_db() as conn:
         try:
             rows = conn.execute('SELECT id, vacation, vacation_history FROM employees WHERE vacation != ""').fetchall()
             for row in rows:
-                end_date = parse_vacation_end(row['vacation'])
-                if end_date and today > end_date:
-                    history = json.loads(row['vacation_history'] or '[]')
-                    history.append(row['vacation'])
-                    conn.execute('UPDATE employees SET vacation = ?, vacation_history = ? WHERE id = ?', ("", json.dumps(history), row['id']))
+                try:
+                    end_date = parse_vacation_end(row['vacation'])
+                    if end_date and today > end_date:
+                        history = json.loads(row['vacation_history'] or '[]')
+                        history.append(row['vacation'])
+                        conn.execute('UPDATE employees SET vacation = ?, vacation_history = ? WHERE id = ?', 
+                                   ("", json.dumps(history), row['id']))
+                except (ValueError, AttributeError, IndexError, TypeError) as e:
+                    logger.warning(f'Ошибка при обработке заявления на отпуск для employee_id={row["id"]}: {e}')
+                    continue
             conn.commit()
-        except sqlite3.OperationalError:
-            pass
+        except sqlite3.Error as e:
+            logger.error(f'Ошибка при очистке истекших заявлений: {e}', exc_info=True)
+            conn.rollback()
 
 def init_db():
     with get_db() as conn:
